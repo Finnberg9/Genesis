@@ -1,0 +1,2701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GENESIS v7 — island ecosystem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Major+Mono+Display&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#04090b;--panel:#081513;--line:rgba(53,224,216,.16);--ink:#cfeae5;--dim:#6f928c;--cyan:#35e0d8;--amber:#ffc24d;}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"IBM Plex Mono",ui-monospace,monospace;overflow:hidden;}
+  #app{display:flex;height:100vh;width:100vw;}
+  #stage{position:relative;flex:1;min-width:0;background:#02060a;}
+  canvas#world{position:absolute;inset:0;cursor:crosshair;}
+  .topbar{position:absolute;top:10px;left:10px;display:flex;gap:8px;align-items:center;z-index:5;
+    background:rgba(6,16,15,.72);border:1px solid var(--line);border-radius:10px;padding:7px 10px;backdrop-filter:blur(6px);}
+  .topbar h1{font-family:"Major Mono Display",monospace;font-weight:400;font-size:18px;letter-spacing:2px;margin:0 6px 0 2px;color:var(--cyan);text-shadow:0 0 18px rgba(53,224,216,.4);}
+  button{font-family:inherit;font-size:13px;background:#0a201d;color:var(--cyan);border:1px solid var(--line);border-radius:7px;padding:6px 11px;cursor:pointer;}
+  button:hover{background:#0e2a26;box-shadow:0 0 12px rgba(53,224,216,.25);}
+  .ctl{display:flex;flex-direction:column;gap:2px;font-size:10px;color:var(--dim);}
+  .ctl b{color:var(--cyan);font-weight:600}
+  input[type=range]{width:96px;accent-color:var(--cyan);vertical-align:middle;}
+  aside{width:362px;flex:0 0 362px;height:100vh;overflow-y:auto;background:var(--bg);border-left:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:12px;}
+  aside::-webkit-scrollbar{width:8px}aside::-webkit-scrollbar-thumb{background:#143430;border-radius:4px}
+  .card{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:12px;}
+  .card h2{margin:0 0 8px;font-size:10.5px;letter-spacing:1.5px;color:var(--dim);font-weight:600;text-transform:uppercase;}
+  .r{display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:2px 0;border-bottom:1px dotted rgba(111,146,140,.13);}
+  .r span{color:var(--dim)}.r b{color:var(--ink);font-weight:600;text-align:right}
+  canvas#charts{width:100%;height:320px;display:block;border-radius:6px;background:#040d0c;}
+  .tag{font-size:11px;letter-spacing:1px;font-weight:700;margin-bottom:6px}
+  hr{border:none;border-top:1px solid var(--line);margin:8px 0}
+  .dim{color:var(--dim);font-size:12px;line-height:1.5}
+  .barwrap{display:block;width:100%;height:6px;background:#04100e;border:1px solid var(--line);border-radius:4px;overflow:hidden;margin:1px 0 5px;}
+  .bar{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--amber))}
+  .logttl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px}
+  .logrow{font-size:11px;color:var(--ink);padding:1px 0;border-bottom:1px dotted rgba(111,146,140,.1)}
+  .toggles{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;font-size:12px}
+  .toggles label{display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink)}
+  .toggles input{accent-color:var(--cyan)}
+  .sliders{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .sliders .ctl{font-size:11px}
+  .field{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--dim)}
+  .field input,.field select{background:#05100e;border:1px solid var(--line);color:var(--ink);border-radius:5px;padding:4px 6px;font-family:inherit;}
+  .field input[type=number]{width:72px}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;font-size:10px;color:var(--dim);margin-top:6px}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
+  #tree{position:fixed;inset:0;z-index:60;background:#04090b;display:none;flex-direction:column;}
+  #tree.on{display:flex}
+  .treebar{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);
+    font-size:11px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;flex:0 0 auto;}
+  .treebar b{color:var(--cyan);letter-spacing:2px}
+  .treebar .spacer{flex:1}
+  #treecv{flex:1;width:100%;display:block;cursor:grab;min-height:0;}
+  #treecv:active{cursor:grabbing}
+  .treenode{position:absolute;right:14px;top:56px;width:236px;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:11px;font-size:12px;display:none;}
+  .treenode.on{display:block}
+  .treekey{display:flex;gap:14px;font-size:10px;color:var(--dim);letter-spacing:1px;align-items:center}
+  .treekey i{display:inline-block;width:14px;height:2px;margin-right:5px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <div class="topbar">
+      <h1>genesis</h1>
+      <button id="play">⏸</button>
+      <button id="reset">↺</button>
+      <button id="zin">+</button><button id="zout">-</button><button id="full">⛶</button>
+      <button id="treebtn" title="phylogeny (T)">⑂</button>
+      <div class="ctl">speed <b id="spdv">12x</b><input id="spd" type="range" min="1" max="100" step="1" value="12"></div>
+    </div>
+    <canvas id="world"></canvas>
+  </div>
+  <aside>
+    <div class="card"><h2>live readout</h2><div id="hud"></div></div>
+    <div class="card"><h2>evolutionary history</h2><canvas id="charts"></canvas></div>
+    <div class="card"><h2>mortality - why they die</h2><div id="deaths"></div></div>
+    <div class="card"><h2>specimen inspector</h2><div id="inspect"><div class="dim">click a creature to inspect its genome & lineage</div></div></div>
+    <div class="card">
+      <h2>systems (toggle to isolate)</h2>
+      <div class="toggles">
+        <label><input type="checkbox" id="f_brains" checked> neural brains</label>
+        <label><input type="checkbox" id="f_day" checked> day / night</label>
+        <label><input type="checkbox" id="f_season" checked> seasons</label>
+        <label><input type="checkbox" id="f_tox" checked> toxins</label>
+      </div>
+      <div class="sliders">
+        <div class="ctl">mutation rate <b id="mutv">0.30</b><input id="mut" type="range" min="0.02" max="0.6" step="0.01" value="0.3"></div>
+        <div class="ctl">time scale (yr speed) <b id="tscalev">0.100</b><input id="tscale" type="range" min="0.01" max="1" step="0.01" value="0.1"></div>
+        <div class="ctl">plant regrowth <b id="plantv">10</b><input id="plant" type="range" min="10" max="900" step="10" value="10"></div>
+      </div>
+      <div class="field">color by
+        <select id="cmode"><option value="diet">diet</option><option value="species">species</option><option value="hue">display hue</option></select>
+      </div>
+      <div class="field">start pop <input id="startPop" type="number" min="2" max="2000" value="2">
+        start plants <input id="startPlants" type="number" min="0" max="40000" value="500">
+        seed <input id="seed" type="number" min="1" max="4294967295" value="2024">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer" title="off = new random universe every load/reset"><input type="checkbox" id="seedLock"> lock</label></div>
+      <div class="legend">
+        <span><i style="background:#0d1e38"></i>deep sea</span><span><i style="background:#2f779e"></i>shallows</span>
+        <span><i style="background:#e2cb8c"></i>beach</span><span><i style="background:#54784c"></i>marsh</span>
+        <span><i style="background:#7eb254"></i>plains</span><span><i style="background:#3c7838"></i>forest</span>
+        <span><i style="background:#2b5443"></i>taiga</span><span><i style="background:#b4a961"></i>savanna</span>
+        <span><i style="background:#8f9b87"></i>tundra</span><span><i style="background:#8a8378"></i>rock</span>
+        <span><i style="background:#aba69d"></i>scree</span><span><i style="background:#eef4fa"></i>snow</span>
+        <span><i style="background:#b070d0"></i>toxin zone</span>
+      </div>
+    </div>
+    <div class="dim" style="font-size:10.5px;line-height:1.5">
+      Isometric island in open ocean, new every load. Drag to pan, scroll or +/− to zoom, click a creature to inspect. Emergent, no fitness function; reproduction is mating-only. Bodies are solid and cannot stack. <b>Body plan</b> is evolvable — elongation, neck and leg length each buy something and cost something — so silhouettes drift toward serpents, waders, browsers and shark forms. A body commits to one medium: fins and wings draw on the same budget, so nothing both swims and flies. <b style="color:var(--cyan)">Two larders are locked behind anatomy</b>: sea-floor growth (2.4x) needs real fins, and alpine growth (up to 3.2x) sits above climbable ground — you may only step up one block, so the summit belongs to whatever evolves wings.
+    </div>
+  </aside>
+</div>
+<div id="tree">
+  <div class="treebar">
+    <b>phylogeny</b>
+    <span class="treekey"><span><i style="background:#35e0d8"></i>living</span><span><i style="background:#3e5856"></i>extinct</span><span><i style="background:#ffc24d"></i>last-resort clone</span><span>press M to switch views</span></span>
+    <span class="spacer"></span>
+    <span id="treeinfo"></span>
+    <button id="treemode">view: species</button>
+    <button id="treefit">fit</button>
+    <button id="treeclose">close</button>
+  </div>
+  <canvas id="treecv"></canvas>
+  <div id="treenode" class="treenode"></div>
+</div>
+<script>
+/* =============================================================================
+ * GENESIS v2 — generative-genome A-Life core (pure logic, no DOM)
+ * Adds, on top of v1: neural brains (evolvable behavior), sexual reproduction
+ * + tree-genome crossover, distance-based speciation w/ reproductive isolation,
+ * day/night cycle, seasons (boom-bust plants), toxicity + aposematism.
+ *
+ * Invariants preserved: NO fitness function; emergent selection; generative
+ * variable-length genome; hard safety caps; NaN-safe; seedable/deterministic;
+ * extinction is a valid terminal state. Every new system is GATED by a flag so
+ * it can be toggled off to recover known-good v1 behavior.
+ * ===========================================================================*/
+(function (root) {
+  'use strict';
+
+  // -------------------------------------------------------------------- RNG
+  function makeRNG(seed) {
+    let a = (seed >>> 0) || 1;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function gauss(rng) {
+    let u = 0, v = 0; while (u === 0) u = rng(); while (v === 0) v = rng();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+  const clamp = (x, lo, hi) => (x < lo ? lo : x > hi ? hi : x);
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  // ------------------------------------------------------------- PART VOCAB
+  const PART = {
+    CORE:  { upkeep: 0.45, maxRepeat: 1 },
+    MOUTH: { upkeep: 0.16, maxRepeat: 1, singleton: true }, // mode herb|carn
+    GUT:   { upkeep: 0.18, maxRepeat: 1, singleton: true },
+    TAIL:  { upkeep: 0.12, maxRepeat: 1, singleton: true },
+    EYE:   { upkeep: 0.12, maxRepeat: 4 },
+    LEG:   { upkeep: 0.20, maxRepeat: 6 },
+    FIN:   { upkeep: 0.20, maxRepeat: 6 },
+    WING:  { upkeep: 0.24, maxRepeat: 4 },
+    SPIKE: { upkeep: 0.16, maxRepeat: 8 },
+    HORN:  { upkeep: 0.22, maxRepeat: 2 },
+    GLAND: { upkeep: 0.20, maxRepeat: 4 },
+  };
+  const PART_TYPES = Object.keys(PART);
+  const PART_IDX = {}; PART_TYPES.forEach((t, i) => PART_IDX[t] = i);
+  const SINGLETON = new Set(['MOUTH', 'GUT', 'TAIL']);
+  const APPENDAGE_TYPES = ['MOUTH', 'GUT', 'TAIL', 'EYE', 'LEG', 'FIN', 'WING', 'SPIKE', 'HORN', 'GLAND'];
+  const MOUTH_MODES = ['herb', 'carn'];
+  const CAPS = { POP: 2500, PLANTS: 2400, GENOME_NODES: 24, PARTS_RENDERED: 40, TREE_DEPTH: 6, SPECIES: 32 };
+
+  // --------------------------------------------------------- NEURAL NETWORK
+  // Fixed topology, evolvable weights (neuroevolution of weights; NEAT/topology
+  // evolution is the noted further upgrade). Zero-ish init => ~no-op => behavior
+  // starts equal to proven reactive logic, then evolution shapes it.
+  // Multi-modal sensing: beyond the reactive channels, brains can now read the
+  // season, their altitude, how far they are from open water, whether they are
+  // standing in something toxic, their own aposematic load and their life
+  // stage. More input channels = more behaviour that selection can act on.
+  const IN = 26, HID = 10, OUT = 6;
+  const BRAIN_LEN = IN * HID + HID + HID * OUT + OUT;
+  // output indices
+  const O_MOVEX = 0, O_MOVEY = 1, O_PURSUE = 2, O_AVOID = 3, O_SOCIAL = 4, O_MATE = 5;
+
+  function newBrain(rng) {
+    const b = new Float64Array(BRAIN_LEN);
+    for (let i = 0; i < BRAIN_LEN; i++) b[i] = gauss(rng) * 0.05; // tiny => near no-op
+    return b;
+  }
+  function cloneBrain(b) { return b.slice(); }
+  function brainForward(b, inp, hid, out) {
+    let o = 0;
+    for (let h = 0; h < HID; h++) {
+      let s = b[IN * HID + h]; // B1
+      const base = h * IN;
+      for (let i = 0; i < IN; i++) s += b[base + i] * inp[i];
+      hid[h] = Math.tanh(s);
+    }
+    const w2 = IN * HID + HID;
+    const b2 = w2 + HID * OUT;
+    for (let k = 0; k < OUT; k++) {
+      let s = b[b2 + k];
+      const base = w2 + k * HID;
+      for (let h = 0; h < HID; h++) s += b[base + h] * hid[h];
+      out[k] = Math.tanh(s);
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------------ GENOME (tree)
+  function newCore() { return { type: 'CORE', size: 1.0, mode: null, repeat: 1, children: [] }; }
+  function newNode(type, rng) {
+    return {
+      type, size: clamp(0.6 + 0.5 * rng(), 0.2, 2.5),
+      mode: type === 'MOUTH' ? MOUTH_MODES[(rng() * 2) | 0] : null,
+      repeat: (type === 'CORE' || SINGLETON.has(type)) ? 1 : 1 + ((rng() * 2) | 0), children: [],
+    };
+  }
+  function cloneNode(n) { return { type: n.type, size: n.size, mode: n.mode, repeat: n.repeat, children: n.children.map(cloneNode) }; }
+  function countNodes(n) { let c = 1; for (const ch of n.children) c += countNodes(ch); return c; }
+  function collectNodes(n, depth, out) { out.push({ node: n, depth }); for (const ch of n.children) collectNodes(ch, depth + 1, out); return out; }
+
+  // full genome = { body, brain:Float64Array, hue:0..1 }
+  // BODY PLAN: three continuous morphology genes, each a real trade-off rather
+  // than a free bonus. They are what turn "circle with limbs" into giraffes,
+  // snakes, sharks and waders, and every one of them costs something.
+  //   elong  - length:width ratio. Streamlines swimming, ruins agility and armour.
+  //   neck   - reach for browsing and striking, paid for in upkeep and defence.
+  //   legLen - stride on land, paid for in upkeep, stability and air-worthiness.
+  const PLAN = { elong: [0.35, 3.4], neck: [0, 2.6], legLen: [0.25, 2.8] };
+  const planOf = (g, k) => clamp(g[k] != null ? g[k] : (k === 'neck' ? 0 : 1), PLAN[k][0], PLAN[k][1]);
+  function cloneGenome(g) {
+    return {
+      body: cloneNode(g.body), brain: cloneBrain(g.brain), hue: g.hue,
+      scale: g.scale != null ? g.scale : 1, life: g.life != null ? g.life : 1,
+      elong: planOf(g, 'elong'), neck: planOf(g, 'neck'), legLen: planOf(g, 'legLen'),
+    };
+  }
+
+  function seedHerbivore(rng) {
+    const core = newCore();
+    const mouth = newNode('MOUTH', rng); mouth.mode = 'herb'; mouth.size = 0.7;
+    const gut = newNode('GUT', rng); gut.size = 0.8;
+    const leg = newNode('LEG', rng); leg.size = 0.7; leg.repeat = 2;
+    const eye = newNode('EYE', rng); eye.size = 0.6; eye.repeat = 1;
+    core.children.push(mouth, gut, leg, eye);
+    return { body: core, brain: newBrain(rng), hue: rng(), scale: 1, life: 1, elong: 1, neck: 0.2, legLen: 1 };
+  }
+
+  // --------------------------------------------------------------- MUTATION
+  function typeCounts(body) {
+    const cnt = {}; for (const { node } of collectNodes(body, 0, [])) cnt[node.type] = (cnt[node.type] || 0) + 1; return cnt;
+  }
+  // enforce singleton cardinality: keep only first occurrence of each singleton
+  function normalizeGenome(body) {
+    const seen = new Set();
+    (function walk(n) {
+      for (let i = n.children.length - 1; i >= 0; i--) {
+        const ch = n.children[i];
+        if (SINGLETON.has(ch.type)) { if (seen.has(ch.type)) { n.children.splice(i, 1); continue; } seen.add(ch.type); ch.repeat = 1; }
+        walk(ch);
+      }
+    })(body);
+    return body;
+  }
+  function mutate(genome, rng, rate) {
+    const g = cloneGenome(genome);
+    const nodes = collectNodes(g.body, 0, []);
+    for (const { node } of nodes) {
+      if (rng() < rate) node.size = clamp(node.size + 0.18 * gauss(rng), 0.2, 2.5);
+      if (node.type !== 'CORE' && !SINGLETON.has(node.type) && rng() < rate * 0.6) {
+        const mr = PART[node.type].maxRepeat;
+        node.repeat = clamp(node.repeat + (rng() < 0.5 ? -1 : 1), 1, mr);
+      }
+      if (node.type === 'MOUTH' && rng() < rate * 0.5) node.mode = MOUTH_MODES[(rng() * 2) | 0];
+    }
+    // gene duplication (non-singleton subtrees only)
+    if (rng() < rate) {
+      const src = nodes[(rng() * nodes.length) | 0].node;
+      if (src.type !== 'CORE' && !SINGLETON.has(src.type) && countNodes(g.body) + countNodes(src) <= CAPS.GENOME_NODES) {
+        const parent = pickParentUnderDepth(g.body, rng);
+        if (parent) parent.children.push(cloneNode(src));
+      }
+    }
+    // add new appendage (respect singleton cardinality)
+    if (rng() < rate && countNodes(g.body) < CAPS.GENOME_NODES) {
+      const cnt = typeCounts(g.body);
+      const allowed = APPENDAGE_TYPES.filter(t => !(SINGLETON.has(t) && cnt[t]));
+      const parent = pickParentUnderDepth(g.body, rng);
+      if (parent && allowed.length) parent.children.push(newNode(allowed[(rng() * allowed.length) | 0], rng));
+    }
+    if (rng() < rate && countNodes(g.body) > 2) deleteRandomNonCore(g.body, rng);
+    for (let i = 0; i < g.brain.length; i++) if (rng() < rate * 0.5) g.brain[i] = clamp(g.brain[i] + gauss(rng) * 0.25, -6, 6);
+    if (rng() < rate) { g.hue = (g.hue + gauss(rng) * 0.06) % 1; if (g.hue < 0) g.hue += 1; }
+    if (rng() < rate) g.scale = clamp((g.scale || 1) * Math.exp(gauss(rng) * 0.18), 0.12, 16); // exponential size, no real cap
+    if (rng() < rate) g.life = clamp((g.life || 1) * Math.exp(gauss(rng) * 0.12), 0.5, 4); // inheritable lifespan
+    // body-plan drift: log-normal so shape can wander far over many generations
+    if (rng() < rate) g.elong = clamp(planOf(g, 'elong') * Math.exp(gauss(rng) * 0.20), PLAN.elong[0], PLAN.elong[1]);
+    if (rng() < rate) g.neck = clamp(planOf(g, 'neck') + gauss(rng) * 0.22, PLAN.neck[0], PLAN.neck[1]);
+    if (rng() < rate) g.legLen = clamp(planOf(g, 'legLen') * Math.exp(gauss(rng) * 0.18), PLAN.legLen[0], PLAN.legLen[1]);
+    normalizeGenome(g.body);
+    return g;
+  }
+  function pickParentUnderDepth(body, rng) {
+    const cand = collectNodes(body, 0, []).filter(x => x.depth < CAPS.TREE_DEPTH - 1);
+    if (!cand.length) return null; return cand[(rng() * cand.length) | 0].node;
+  }
+  function deleteRandomNonCore(body, rng) {
+    const pairs = [];
+    (function walk(n) { for (let i = 0; i < n.children.length; i++) { pairs.push([n, i]); walk(n.children[i]); } })(body);
+    if (!pairs.length) return; const [p, i] = pairs[(rng() * pairs.length) | 0]; p.children.splice(i, 1);
+  }
+
+  // -------------------------------------------------------------- CROSSOVER
+  // Recursively recombine two body trees; uniform crossover on brain weights.
+  function crossBody(a, b, rng) {
+    const node = { type: a.type, size: (a.size + b.size) * 0.5, mode: a.mode, repeat: rng() < 0.5 ? a.repeat : b.repeat, children: [] };
+    if (a.type === 'MOUTH') node.mode = rng() < 0.5 ? a.mode : b.mode;
+    const max = Math.max(a.children.length, b.children.length);
+    for (let i = 0; i < max; i++) {
+      const ca = a.children[i], cb = b.children[i];
+      if (ca && cb) node.children.push(ca.type === cb.type ? crossBody(ca, cb, rng) : cloneNode(rng() < 0.5 ? ca : cb));
+      else if (ca) { if (rng() < 0.7) node.children.push(cloneNode(ca)); }
+      else if (cb) { if (rng() < 0.7) node.children.push(cloneNode(cb)); }
+    }
+    return node;
+  }
+  function trimToCap(body) { // safety: prune leaves until under cap
+    while (countNodes(body) > CAPS.GENOME_NODES) {
+      const pairs = [];
+      (function walk(n) { for (let i = 0; i < n.children.length; i++) { if (n.children[i].children.length === 0) pairs.push([n, i]); walk(n.children[i]); } })(body);
+      if (!pairs.length) break; const [p, i] = pairs[0]; p.children.splice(i, 1);
+    }
+    return body;
+  }
+  function crossover(ga, gb, rng) {
+    const body = trimToCap(normalizeGenome(crossBody(ga.body, gb.body, rng)));
+    const brain = new Float64Array(BRAIN_LEN);
+    for (let i = 0; i < BRAIN_LEN; i++) brain[i] = rng() < 0.5 ? ga.brain[i] : gb.brain[i];
+    let hue = rng() < 0.5 ? ga.hue : gb.hue;
+    const gmean = (a, b) => Math.sqrt((a != null ? a : 1) * (b != null ? b : 1));
+    return {
+      body, brain, hue, scale: gmean(ga.scale, gb.scale), life: gmean(ga.life, gb.life),
+      elong: gmean(planOf(ga, 'elong'), planOf(gb, 'elong')),
+      neck: (planOf(ga, 'neck') + planOf(gb, 'neck')) * 0.5,
+      legLen: gmean(planOf(ga, 'legLen'), planOf(gb, 'legLen')),
+    };
+  }
+
+  // ------------------------------------------------------------ DEVELOPMENT
+  function develop(genome) {
+    const parts = [];
+    const stat = { mass: 0, upkeep: 0, legs: 0, fins: 0, wings: 0, eye: 0, spike: 0, horn: 0, gut: 0, tail: 0, toxin: 0, mouthSize: 0, mouthCarn: 0 };
+    function place(node, px, py, baseAngle, depth, parentRadius) {
+      if (parts.length >= CAPS.PARTS_RENDERED) return;
+      const r = 4 + node.size * 7;
+      let x = px, y = py;
+      if (node.type !== 'CORE') { const dist = parentRadius + r + 2; x = px + Math.cos(baseAngle) * dist; y = py + Math.sin(baseAngle) * dist; }
+      parts.push({ type: node.type, mode: node.mode, x, y, r, size: node.size });
+      const n = node.repeat;
+      stat.mass += node.size * n * (node.type === 'CORE' ? 2.0 : 1.0);
+      stat.upkeep += PART[node.type].upkeep * node.size * n;
+      switch (node.type) {
+        case 'LEG': stat.legs += node.size * n; break;
+        case 'FIN': stat.fins += node.size * n; break;
+        case 'WING': stat.wings += node.size * n; break;
+        case 'EYE': stat.eye += node.size * n; break;
+        case 'SPIKE': stat.spike += node.size * n; break;
+        case 'HORN': stat.horn += node.size * n; break;
+        case 'GUT': stat.gut += node.size; break;
+        case 'TAIL': stat.tail += node.size; break;
+        case 'GLAND': stat.toxin += node.size * n; break;
+        case 'MOUTH': stat.mouthSize += node.size; if (node.mode === 'carn') stat.mouthCarn += node.size; break;
+      }
+      if (depth >= CAPS.TREE_DEPTH) return;
+      const kids = node.children, spread = Math.PI * 1.4;
+      for (let i = 0; i < kids.length; i++) {
+        const t = kids.length === 1 ? 0.5 : i / (kids.length - 1);
+        const childAngle = baseAngle + (t - 0.5) * spread;
+        place(kids[i], x, y, childAngle, depth + 1, r);
+        if (kids[i].repeat >= 2 && parts.length < CAPS.PARTS_RENDERED) place(kids[i], x, y, baseAngle - (childAngle - baseAngle), depth + 1, r);
+      }
+    }
+    place(genome.body, 0, 0, 0, 0, 0);
+    // EXPONENTIAL evolvable body size (genome.scale). No artificial cap beyond a
+    // high perf safeguard. Drives the whole tiny<->giant tradeoff spectrum.
+    // A body commits to ONE medium. Wings and fins draw on the same tissue
+    // budget, so an aquatic form's wing parts develop as extra fin surface
+    // rather than functioning (or rendering) as wings -- no flying fish.
+    const aquaticForm = stat.fins > stat.wings;
+    const finEff = aquaticForm ? stat.fins + stat.wings * 0.55 : stat.fins * 0.35;
+    const wingEff = aquaticForm ? 0 : stat.wings;
+    const S = isFinite(genome.scale) ? clamp(genome.scale, 0.12, 16) : 1;
+    const mass = Math.max(0.35, stat.mass) * S;
+    const tailBonus = 1 + stat.tail * 0.12;
+    const speedScale = clamp(1.8 / (0.6 + mass * 0.5), 0.02, 3.2); // tiny darts, giants lumber
+    const ph = {
+      parts, nodeCount: countNodes(genome.body), mass, scale: S,
+      radius: clamp(4 + mass * 1.5, 4, 170),
+      speedLand: clamp((20 + 24 * stat.legs) * speedScale * tailBonus, 2, 120),
+      speedWater: clamp((12 + 26 * finEff) * speedScale * tailBonus, 2, 120),
+      speedAir: wingEff > 0.32 * mass ? clamp((22 + 26 * wingEff) * clamp(2 / (0.5 + mass), 0.2, 2.4), 12, 110) : 0,
+      sense: clamp(95 + 70 * stat.eye + mass * 1.8, 95, 440),
+      eyeStat: stat.eye,
+      reach: clamp(6 + 9 * stat.horn + mass * 0.9, 8, 130),       // giants reach far
+      attack: stat.mouthCarn * 8 + stat.horn * 6 + mass * 0.35,   // bigger hits harder
+      defense: clamp(stat.spike * 7 + mass * 1.1, 0, 400),        // bigger = tougher
+      counter: stat.spike * 6,
+      // Reserve capacity scales roughly LINEARLY with mass (a bigger animal has a
+      // bigger fat/energy tank), while baseline metabolic burn scales SUB-linearly
+      // (~mass^0.72, Kleiber's-law style). storage/upkeep therefore grows with size:
+      // small animals run on a tiny tank at a relatively brisk burn rate and must
+      // eat often; large animals burn more food in absolute terms per unit time but
+      // carry a reserve that lasts them far longer between meals. Both terms are
+      // pure multiples of mass (no oversized flat floor) so the relationship holds
+      // across the whole size range instead of just at the big end.
+      storage: clamp(mass * (18 + 6 * stat.gut), 4, 6000),        // bigger = proportionally huge reserves
+      digest: clamp(0.55 + 0.2 * stat.gut + (stat.mouthSize - stat.mouthCarn) * 0.05, 0.55, 1.15),
+      upkeep: (stat.upkeep + 0.1) * Math.pow(mass, 0.55),         // bigger = more food, but sub-linearly
+      toxin: clamp(stat.toxin * 0.6, 0, 4),
+      hue: genome.hue,
+      sLegs: stat.legs, sFins: stat.fins, sWings: stat.wings, sHorn: stat.horn, sTail: stat.tail, sMouthCarn: stat.mouthCarn, sEye: stat.eye,
+    };
+    // ---- body plan applied: every gain below is paid for somewhere else
+    const EL = planOf(genome, 'elong'), NK = planOf(genome, 'neck'), LL = planOf(genome, 'legLen');
+    ph.elong = EL; ph.neck = NK; ph.legLen = LL;
+    ph.speedLand *= (0.72 + 0.42 * LL);                    // stride length
+    ph.speedWater *= (0.72 + 0.30 * EL);                   // streamlining
+    if (ph.speedAir > 0) ph.speedAir *= clamp(1.30 - 0.13 * EL - 0.12 * LL, 0.25, 1.3);
+    ph.reach += NK * 11;                                   // browse high / strike far
+    ph.attack *= (1 + NK * 0.06);
+    ph.sense *= clamp(1 + (NK + LL - 1) * 0.08, 0.8, 1.6); // taller stance sees further
+    ph.upkeep *= (1 + NK * 0.13 + Math.abs(LL - 1) * 0.10 + Math.abs(EL - 1) * 0.09);
+    ph.defense *= clamp(1 - NK * 0.10 - Math.max(0, LL - 1) * 0.07, 0.30, 1);
+    ph.storage *= clamp(1 - Math.abs(EL - 1) * 0.05, 0.75, 1);
+    ph.speedLand = clamp(ph.speedLand, 1.5, 160); ph.speedWater = clamp(ph.speedWater, 1.5, 160);
+    // render axes preserve body area, so elongation is a shape change not a size cheat
+    const rt = Math.sqrt(EL);
+    ph.bodyRX = ph.radius * rt; ph.bodyRY = ph.radius / rt;
+    ph.standH = ph.radius * (0.55 + 0.62 * LL);            // body centre above ground
+    ph.canFly = ph.speedAir > 0 ? 1 : 0;
+    // Real fins unlock the deep-water niche: below this threshold the deep is a
+    // hard wall, above it the sea floor is an untapped food supply.
+    ph.canSwim = finEff >= 0.8 ? 1 : 0;
+    ph.aquaticForm = aquaticForm ? 1 : 0;
+    ph.finEff = finEff; ph.wingEff = wingEff;
+    ph.carnivory = clamp(stat.mouthCarn / 1.2, 0, 1);
+    return ph;
+  }
+
+  // ------------------------------------------------------------- SPECIATION
+  function signature(genome, ph) {
+    const hist = new Int16Array(PART_TYPES.length);
+    for (const { node } of collectNodes(genome.body, 0, [])) hist[PART_IDX[node.type]] += node.repeat;
+    return { nodes: ph.nodeCount, hist, hue: genome.hue, brain: genome.brain };
+  }
+  function geneticDistance(s1, s2) {
+    let d = Math.abs(s1.nodes - s2.nodes) * 1.2;
+    for (let i = 0; i < s1.hist.length; i++) d += Math.abs(s1.hist[i] - s2.hist[i]);
+    let hd = Math.abs(s1.hue - s2.hue); if (hd > 0.5) hd = 1 - hd; d += hd * 6;
+    let bl = 0; for (let i = 0; i < BRAIN_LEN; i += 4) { const x = s1.brain[i] - s2.brain[i]; bl += x * x; }
+    d += Math.sqrt(bl) * 1.5;
+    return d;
+  }
+  const SPECIES_THRESH = 9;
+  function hueToRGB(h, s, l) { // returns [r,g,b] 0..255
+    const a = s * Math.min(l, 1 - l);
+    const f = (n) => { const k = (n + h * 12) % 12; return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1))))); };
+    return [f(0), f(8), f(4)];
+  }
+  function speciesColor(id) {
+    const h = ((id * 0.61803398875) % 1);
+    const [r, g, b] = hueToRGB(h, 0.65, 0.6);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  // --------------------------------------------------------------- TERRAIN
+  // Seeded value-noise heightmap -> biomes (lake / sand / grass / rock / snow).
+  // Terrain is heterogeneous (resource gradient) AND affects movement, so it
+  // creates emergent niches (fliers win in mountains, fins in water) without
+  // any objective. Levels chosen so most of the map is traversable grassland.
+  // deep < water: only creatures with real fins may cross the deep line. That
+  // single threshold is what turns the ocean into an unexploited niche.
+  const LV = { deep: 0.215, water: 0.300, sand: 0.355, grass: 0.735, rock: 0.885 };
+  // Biomes come from elevation x moisture x temperature, so the map reads as
+  // distinct regions (kelp sea, dune coast, marsh, prairie, deep forest, taiga,
+  // dry savanna, scree, alpine snow) instead of one repeating green field.
+  const BIOMES = ['deep', 'shallow', 'beach', 'marsh', 'plains', 'forest', 'taiga', 'savanna', 'desert', 'tundra', 'rock', 'scree', 'snow'];
+  const B = {}; BIOMES.forEach((n, i) => B[n] = i);
+  // plant density per biome (relative), and whether it is submerged
+  const BIOME_FERT = {
+    deep: 0.13, shallow: 0.30, beach: 0.22, marsh: 1.00, plains: 0.95, forest: 0.85,
+    taiga: 0.48, savanna: 0.52, desert: 0.10, tundra: 0.20, rock: 0.16, scree: 0.10, snow: 0.07,
+  };
+  const BASE_W = 3200, BASE_H = 2000; // reference world used to define feature scale
+  function makeTerrain(w, h, rng, elevSteps, tileSize) {
+    // ------------------------------------------------------------------ fBm
+    // Octave grid resolution scales WITH world size, so feature size is fixed in
+    // world units: a bigger map is more terrain, never stretched terrain.
+    const sx = w / BASE_W, sy = h / BASE_H;
+    const OCT = [[6, 4, 1.00], [11, 7, 0.52], [21, 14, 0.27], [43, 28, 0.14], [85, 55, 0.07]];
+    const oct = []; let ampSum = 0;
+    for (let k = 0; k < OCT.length; k++) {
+      const gw = Math.max(2, Math.round(OCT[k][0] * sx)), gh = Math.max(2, Math.round(OCT[k][1] * sy));
+      const g = new Float32Array((gw + 1) * (gh + 1));
+      for (let i = 0; i < g.length; i++) g[i] = rng();
+      oct.push({ gw, gh, amp: OCT[k][2], g }); ampSum += OCT[k][2];
+    }
+    const sm = (t) => t * t * (3 - 2 * t);
+    function sampleOct(o, x, y) {
+      const fx = (x / w) * o.gw, fy = (y / h) * o.gh;
+      let x0 = Math.floor(fx), y0 = Math.floor(fy);
+      const tx = sm(fx - x0), ty = sm(fy - y0);
+      x0 = ((x0 % o.gw) + o.gw) % o.gw; y0 = ((y0 % o.gh) + o.gh) % o.gh;
+      const x1 = (x0 + 1) % o.gw, y1 = (y0 + 1) % o.gh;
+      const cc = (cx, cy) => o.g[cy * (o.gw + 1) + cx];
+      return lerp(lerp(cc(x0, y0), cc(x1, y0), tx), lerp(cc(x0, y1), cc(x1, y1), tx), ty);
+    }
+    function fbm(x, y) { let s = 0; for (let i = 0; i < oct.length; i++) s += sampleOct(oct[i], x, y) * oct[i].amp; return s / ampSum; }
+
+    // independent climate fields (own noise, same rng stream => still seeded)
+    const mkOct = (gw0, gh0) => {
+      const gw = Math.max(2, Math.round(gw0 * sx)), gh = Math.max(2, Math.round(gh0 * sy));
+      const g = new Float32Array((gw + 1) * (gh + 1));
+      for (let i = 0; i < g.length; i++) g[i] = rng();
+      return { gw, gh, g };
+    };
+    const mo1 = mkOct(5, 3), mo2 = mkOct(13, 9), to1 = mkOct(4, 3), ro1 = mkOct(9, 6);
+    // ridged-multifractal terms: sharp ridgelines and carved valleys, which
+    // plain fBm cannot make (it only ever produces rounded blobs)
+    const rdgA = mkOct(9, 6), rdgB = mkOct(19, 13), valA = mkOct(7, 5);
+    const ridgedAt = (o, x, y) => { const t = 1 - Math.abs(2 * sampleOct(o, x, y) - 1); return t * t; };
+    const moisture = (x, y) => clamp(sampleOct(mo1, x, y) * 0.68 + sampleOct(mo2, x, y) * 0.32, 0, 1);
+    const tempNoise = (x, y) => sampleOct(to1, x, y);
+    // ridged band of the river field -> thin winding channels
+    const riverAt = (x, y) => {
+      const n = sampleOct(ro1, x, y);
+      const ridge = 1 - Math.abs(2 * n - 1);
+      if (ridge <= 0.90) return 0;
+      const t = (ridge - 0.90) / 0.10;
+      return t * t * (3 - 2 * t);
+    };
+    const fall = (d) => { if (d >= 1) return 0; if (d <= 0) return 1; const t = 1 - d; return t * t * (3 - 2 * t); };
+    const TAU = Math.PI * 2, D = Math.hypot(w, h);
+
+    // ------------------------------------------------------- macro features
+    // ISLAND: the landmass is a warped ellipse in the middle of open ocean. The
+    // mask drives elevation toward the sea floor as you go out, so every map
+    // border is deep water and the sea reads as unbounded.
+    const OCEAN_FLOOR = 0.055;               // rounds to elevation level 0 => flat sea
+    // ---- island silhouette: lobes (peanut / loop shapes), a randomised
+    // superellipse exponent (round <-> squarish), aspect stretch, carved coves,
+    // and sometimes a central lagoon. Every seed gets a different coastline.
+    const aspect = 0.78 + rng() * 0.50;                 // stretched one way or the other
+    const isle = {
+      cx: w * (0.485 + rng() * 0.03), cy: h * (0.485 + rng() * 0.03),
+      rx: w * 0.425 * Math.min(1, aspect), ry: h * 0.425 * Math.min(1, 1 / aspect),
+      pow: 2.0 + rng() * 2.2,
+      p0: rng() * TAU, p1: rng() * TAU, p2: rng() * TAU, p3: rng() * TAU,
+      a0: 0.05 + rng() * 0.11, a1: rng() * 0.07, a2: rng() * 0.05, a3: rng() * 0.07,
+    };
+    const lobes = [isle];
+    if (rng() < 0.50) {                                  // second lobe -> peanut / hook
+      const la = rng() * TAU, off = 0.34 + rng() * 0.26, sc = 0.50 + rng() * 0.30;
+      lobes.push({
+        cx: isle.cx + Math.cos(la) * isle.rx * off, cy: isle.cy + Math.sin(la) * isle.ry * off,
+        rx: isle.rx * sc, ry: isle.ry * sc, pow: 2.0 + rng() * 2.0,
+        p0: rng() * TAU, p1: rng() * TAU, p2: rng() * TAU, p3: rng() * TAU,
+        a0: 0.06 + rng() * 0.12, a1: rng() * 0.08, a2: rng() * 0.05, a3: rng() * 0.08,
+      });
+    }
+    const coves = [];
+    const nCove = (rng() * 3) | 0;                        // 0-2 bays bitten out of the coast
+    for (let i = 0; i < nCove; i++) {
+      const ca = rng() * TAU;
+      coves.push({
+        x: isle.cx + Math.cos(ca) * isle.rx * (0.62 + rng() * 0.34),
+        y: isle.cy + Math.sin(ca) * isle.ry * (0.62 + rng() * 0.34),
+        r: D * (0.055 + rng() * 0.075), depth: 0.65 + rng() * 0.5,
+      });
+    }
+    // central lagoon: turns the island into a ring / atoll
+    const lagoon = rng() < 0.22
+      ? { x: isle.cx + (rng() - 0.5) * isle.rx * 0.3, y: isle.cy + (rng() - 0.5) * isle.ry * 0.3,
+          r: D * (0.070 + rng() * 0.060), depth: 0.85 + rng() * 0.4 }
+      : null;
+    // shoreline warp: keeps peninsulas and bays; bounded so land never reaches
+    // the map border (max radial gain is 1/(1-0.19) = 1.23 of the base radius).
+    function lobeMask(lo, x, y) {
+      const dx = (x - lo.cx) / lo.rx, dy = (y - lo.cy) / lo.ry;
+      const a = Math.atan2(dy, dx);
+      let warp = 1 + lo.a0 * Math.sin(3 * a + lo.p0) + lo.a1 * Math.sin(5 * a + lo.p1)
+                   + lo.a2 * Math.sin(7 * a + lo.p2) - lo.a3 * Math.sin(2 * a + lo.p3);
+      if (warp < 0.82) warp = 0.82; else if (warp > 1.20) warp = 1.20;
+      const p = lo.pow;
+      const dn = Math.pow(Math.pow(Math.abs(dx), p) + Math.pow(Math.abs(dy), p), 1 / p) * warp;
+      if (dn >= 1.0) return 0;
+      if (dn <= 0.70) return 1;
+      const t = (1.0 - dn) / 0.30;
+      return t * t * (3 - 2 * t);              // continental shelf: beach -> shallows -> drop-off
+    }
+    function islandMask(x, y) {
+      let m = 0;
+      for (let i = 0; i < lobes.length; i++) { const v = lobeMask(lobes[i], x, y); if (v > m) m = v; }
+      if (m <= 0) return 0;
+      for (let i = 0; i < coves.length; i++) { const cv = coves[i]; m -= cv.depth * fall(Math.hypot(x - cv.x, y - cv.y) / cv.r); }
+      if (lagoon) m -= lagoon.depth * fall(Math.hypot(x - lagoon.x, y - lagoon.y) / lagoon.r);
+      return m <= 0 ? 0 : m > 1 ? 1 : m;
+    }
+
+    // one large mountain massif, inland (never on the shelf)
+    let ma = rng() * TAU, mr = 0.28 + rng() * 0.26;   // set off-centre
+    for (let i = 0; i < 40; i++) {   // reject placements that land in a cove/lagoon
+      const tx = isle.cx + Math.cos(ma) * isle.rx * mr, ty = isle.cy + Math.sin(ma) * isle.ry * mr;
+      if (islandMask(tx, ty) > 0.92) break;
+      ma = rng() * TAU; mr = 0.20 + rng() * 0.30;
+    }
+    const mt = {
+      x: clamp(isle.cx + Math.cos(ma) * isle.rx * mr, w * 0.15, w * 0.85),
+      y: clamp(isle.cy + Math.sin(ma) * isle.ry * mr, h * 0.15, h * 0.85),
+      r: D * 0.115, up: 0.60, p0: rng() * TAU, p1: rng() * TAU,
+    };
+    // a second, smaller peak so the skyline is not one lonely cone
+    const ma2 = ma + 1.6 + rng() * 2.0, mr2 = 0.30 + rng() * 0.28;
+    const mt2 = {
+      x: clamp(isle.cx + Math.cos(ma2) * isle.rx * mr2, w * 0.15, w * 0.85),
+      y: clamp(isle.cy + Math.sin(ma2) * isle.ry * mr2, h * 0.15, h * 0.85),
+      r: D * 0.070, up: 0.36, p0: rng() * TAU, p1: rng() * TAU,
+    };
+
+    // inland lakes (small, with a divable centre) kept clear of the massif
+    const lakes = [];
+    for (let i = 0; i < 2; i++) {
+      for (let k = 0; k < 60; k++) {
+        const la = rng() * TAU, lr = rng() * 0.62;
+        const lx = isle.cx + Math.cos(la) * isle.rx * lr, ly = isle.cy + Math.sin(la) * isle.ry * lr;
+        if (Math.hypot(lx - mt.x, ly - mt.y) > D * 0.16) {
+          lakes.push({ x: lx, y: ly, r: D * (0.055 + rng() * 0.030), depth: 0.44 }); break;
+        }
+      }
+    }
+    // secondary ridges -> rolling hills and valleys, so the land is not a plain
+    const ridges = [];
+    for (let i = 0; i < 4; i++) {
+      const a = rng() * Math.PI, ra = rng() * TAU, rr = rng() * 0.75;
+      ridges.push({
+        x: isle.cx + Math.cos(ra) * isle.rx * rr, y: isle.cy + Math.sin(ra) * isle.ry * rr,
+        len: D * (0.10 + rng() * 0.12), wid: D * (0.030 + rng() * 0.022),
+        ca: Math.cos(a), sa: Math.sin(a), up: 0.07 + rng() * 0.09,
+      });
+    }
+
+    // Bathymetry: banks, basins and trenches. Kept entirely below the deep line
+    // so the open sea stays impassable on foot, but no longer a flat plane.
+    function oceanFloor(x, y) {
+      const b = fbm(x, y) * 0.58 + ridgedAt(rdgA, x, y) * 0.28 + ridgedAt(rdgB, x, y) * 0.14;
+      return clamp(0.018 + b * 0.170, 0.004, LV.deep - 0.018);
+    }
+    function rawHeight(x, y) {
+      const m = islandMask(x, y);
+      const OF = oceanFloor(x, y);
+      if (m <= 0) return OF;
+      let base = fbm(x, y) * 0.60
+               + ridgedAt(rdgA, x, y) * 0.26
+               + ridgedAt(rdgB, x, y) * 0.14
+               - ridgedAt(valA, x, y) * 0.24;
+      base = base < 0 ? 0 : base > 1 ? 1 : base;
+      let e = 0.300 + base * 0.560;             // land-biased base band
+      // lakes
+      for (let i = 0; i < lakes.length; i++) { const lk = lakes[i]; e -= lk.depth * fall(Math.hypot(x - lk.x, y - lk.y) / lk.r); }
+      // massif
+      const mdx = x - mt.x, mdy = y - mt.y;
+      const mang = Math.atan2(mdy, mdx);
+      let rug = 1 + 0.18 * Math.sin(4 * mang + mt.p0) + 0.12 * Math.sin(7 * mang + mt.p1);
+      if (rug < 0.35) rug = 0.35;
+      e += mt.up * fall((Math.hypot(mdx, mdy) / mt.r) * rug) * m;
+      const m2x = x - mt2.x, m2y = y - mt2.y, m2a = Math.atan2(m2y, m2x);
+      let rug2 = 1 + 0.20 * Math.sin(5 * m2a + mt2.p0) + 0.12 * Math.sin(3 * m2a + mt2.p1);
+      if (rug2 < 0.35) rug2 = 0.35;
+      e += mt2.up * fall((Math.hypot(m2x, m2y) / mt2.r) * rug2) * m;
+      // ridges (distance to a line segment)
+      for (let i = 0; i < ridges.length; i++) {
+        const rg = ridges[i], px = x - rg.x, py = y - rg.y;
+        let u = px * rg.ca + py * rg.sa;
+        if (u > rg.len) u = rg.len; else if (u < -rg.len) u = -rg.len;
+        e += rg.up * fall(Math.hypot(px - u * rg.ca, py - u * rg.sa) / rg.wid) * m;
+      }
+      // blend to the local sea floor across the shelf -> beach, shallows, deep
+      e = OF + (e - OF) * m;
+      // rivers: carved only down to SHALLOW, never to deep, so they are always
+      // fordable and never cut a population in half.
+      const rv = riverAt(x, y) * (m > 0.55 ? 1 : 0);   // rivers are an inland feature
+      if (rv > 0 && e > LV.deep) {
+        const bed = LV.deep + 0.048;
+        if (e > bed) e = e + (bed - e) * rv;
+      }
+      return clamp(e, 0, 1);
+    }
+
+    // Temperature: cold north -> warm south, minus an altitude lapse rate, so
+    // every massif gets its own alpine band regardless of latitude.
+    // Cold north -> warm south, with an altitude lapse that only bites ABOVE the
+    // treeline. Lowlands stay temperate; every massif still grows its own
+    // scree ring and snow cap.
+    function tempAt(x, y, e) {
+      const lapse = e > LV.grass ? ((e - LV.grass) / (1 - LV.grass)) * 0.45 : 0;
+      return clamp(0.16 + (y / h) * 0.78 + (tempNoise(x, y) - 0.5) * 0.26 - lapse, 0, 1);
+    }
+    function classify(x, y, e) {
+      if (e < LV.deep) return B.deep;
+      if (e < LV.water) return B.shallow;
+      const m = moisture(x, y), t = tempAt(x, y, e);
+      if (e < LV.sand) return m > 0.64 ? B.marsh : B.beach;
+      if (e >= LV.rock) return t < 0.26 ? B.snow : B.scree;
+      if (t < 0.09) return B.snow;
+      if (e >= LV.grass) return t < 0.20 ? B.snow : B.rock;
+      if (t < 0.30) return m > 0.46 ? B.taiga : B.tundra;
+      if (m > 0.56) return B.forest;
+      if (m > 0.40) return B.plains;
+      if (t > 0.62 && m < 0.30) return B.desert;   // hot AND arid -> true dune desert
+      return B.savanna;
+    }
+
+    // ------------------------------------------------------------ height cache
+    // The field is sampled thousands of times per simulation step; a 32-unit
+    // bilinear cache makes every lookup two array reads instead of ~20 lerps.
+    const CELL = 32;
+    const HX = Math.ceil(w / CELL) + 1, HY = Math.ceil(h / CELL) + 1;
+    const hg = new Float32Array(HX * HY);
+    const bg = new Uint8Array(HX * HY);   // categorical: nearest lookup, no lerp
+    const mg = new Float32Array(HX * HY); // moisture, for decoration variety
+    for (let j = 0; j < HY; j++) for (let i = 0; i < HX; i++) {
+      const px = i * CELL, py = j * CELL, k = j * HX + i;
+      const e = rawHeight(px, py);
+      hg[k] = e; bg[k] = classify(px, py, e); mg[k] = moisture(px, py);
+    }
+    // ---- distance-to-deep-water field (chamfer transform on the same grid).
+    // Land animals steer by this gradient, which is isotropic: the v6 build
+    // probed only straight ahead, so anything moving TANGENT to the shore felt
+    // no push at all and slid along the coast forever. That is what beached the
+    // whole population.
+    const sd = new Float32Array(HX * HY);
+    for (let i = 0; i < sd.length; i++) sd[i] = hg[i] < LV.deep ? 0 : 1e9;
+    for (let j = 0; j < HY; j++) for (let i = 0; i < HX; i++) {
+      const k = j * HX + i; let v = sd[k];
+      if (i > 0 && sd[k - 1] + 1 < v) v = sd[k - 1] + 1;
+      if (j > 0 && sd[k - HX] + 1 < v) v = sd[k - HX] + 1;
+      if (i > 0 && j > 0 && sd[k - HX - 1] + 1.4142 < v) v = sd[k - HX - 1] + 1.4142;
+      if (i < HX - 1 && j > 0 && sd[k - HX + 1] + 1.4142 < v) v = sd[k - HX + 1] + 1.4142;
+      sd[k] = v;
+    }
+    for (let j = HY - 1; j >= 0; j--) for (let i = HX - 1; i >= 0; i--) {
+      const k = j * HX + i; let v = sd[k];
+      if (i < HX - 1 && sd[k + 1] + 1 < v) v = sd[k + 1] + 1;
+      if (j < HY - 1 && sd[k + HX] + 1 < v) v = sd[k + HX] + 1;
+      if (i < HX - 1 && j < HY - 1 && sd[k + HX + 1] + 1.4142 < v) v = sd[k + HX + 1] + 1.4142;
+      if (i > 0 && j < HY - 1 && sd[k + HX - 1] + 1.4142 < v) v = sd[k + HX - 1] + 1.4142;
+      sd[k] = v;
+    }
+    for (let i = 0; i < sd.length; i++) { const d = sd[i] * CELL; sd[i] = d > 6000 ? 6000 : d; }
+
+    // ---- block levels. Quantised against THIS world's own peak so the full
+    // range of blocks is used; a fixed 0..1 mapping only ever produced ~5 steps
+    // because no island uses the whole height range.
+    const ELEV = Math.max(4, Math.min(200, elevSteps || 40));
+    const MAXSTEP = Math.max(5, Math.round(ELEV / 16));   // climbable rise, in blocks
+    let hMax = LV.water + 0.02;
+    for (let i = 0; i < hg.length; i++) if (hg[i] > hMax) hMax = hg[i];
+    // Blocks span the FULL height range, so the seabed is terraced like the
+    // land instead of being flattened to a single level.
+    const levelOf = (e) => Math.round((clamp(e, 0, 1) / Math.max(0.05, hMax)) * ELEV);
+    // levels live on the RENDER tile grid, sampled at tile centres
+    const TS = tileSize || 48;
+    const LTX = Math.ceil(w / TS), LTY = Math.ceil(h / TS);
+    const lvArr = new Uint8Array(LTX * LTY);
+
+    const cellIdx = (x, y) => {
+      let i = Math.round(x / CELL), j = Math.round(y / CELL);
+      if (i < 0) i = 0; else if (i > HX - 1) i = HX - 1;
+      if (j < 0) j = 0; else if (j > HY - 1) j = HY - 1;
+      return j * HX + i;
+    };
+
+    const terrain = {
+      w, h, LV, island: isle, mountain: mt, lakes, islandMask,
+      height(x, y) {
+        let fx = x / CELL, fy = y / CELL;
+        if (!(fx >= 0)) fx = 0; else if (fx > HX - 1.001) fx = HX - 1.001;
+        if (!(fy >= 0)) fy = 0; else if (fy > HY - 1.001) fy = HY - 1.001;
+        const i0 = fx | 0, j0 = fy | 0, tx = fx - i0, ty = fy - j0;
+        const r0 = j0 * HX + i0, r1 = r0 + HX;
+        return lerp(lerp(hg[r0], hg[r0 + 1], tx), lerp(hg[r1], hg[r1 + 1], tx), ty);
+      },
+      isWater(x, y) { return terrain.height(x, y) < LV.water; },
+      isDeep(x, y) { return terrain.height(x, y) < LV.deep; },
+      biomeIdx(x, y) { return bg[cellIdx(x, y)]; },
+      biomeAt(x, y) { return BIOMES[bg[cellIdx(x, y)]]; },
+      moistureAt(x, y) { return mg[cellIdx(x, y)]; },
+      shoreDist(x, y) { return sd[cellIdx(x, y)]; },
+      ELEV, hMax, levelOf, tileSize: TS, LTX, LTY, maxStep: MAXSTEP,
+      level(x, y) {
+        let i = Math.floor(x / TS), j = Math.floor(y / TS);
+        if (i < 0) i = 0; else if (i > LTX - 1) i = LTX - 1;
+        if (j < 0) j = 0; else if (j > LTY - 1) j = LTY - 1;
+        return lvArr[j * LTX + i];
+      },
+      // unit vector pointing INLAND (up the distance gradient); [0,0] if flat
+      shoreGrad(x, y, out) {
+        let i = Math.round(x / CELL), j = Math.round(y / CELL);
+        if (i < 1) i = 1; else if (i > HX - 2) i = HX - 2;
+        if (j < 1) j = 1; else if (j > HY - 2) j = HY - 2;
+        const k = j * HX + i;
+        const gx = sd[k + 1] - sd[k - 1], gy = sd[k + HX] - sd[k - HX];
+        const l = Math.hypot(gx, gy);
+        if (l < 1e-6) { out[0] = 0; out[1] = 0; } else { out[0] = gx / l; out[1] = gy / l; }
+        return out;
+      },
+      fertility(x, y) { return BIOME_FERT[BIOMES[bg[cellIdx(x, y)]]] || 0.05; },
+      // movement multiplier (fliers ignore terrain; only swimmers are at home
+      // in the deep, everyone else wades the shallows at a penalty)
+      speedMul(x, y, canFly, canSwim) {
+        if (canFly) return 1;
+        const e = terrain.height(x, y);
+        if (e < LV.deep) return canSwim ? 1 : 0.25;
+        if (e < LV.water) return canSwim ? 1 : 0.78;
+        if (e < LV.sand) return 0.9;
+        if (e >= LV.rock) return 0.55;
+        if (e >= LV.grass) return 0.78;
+        return 1;
+      },
+      extraUpkeep(x, y, canFly) {
+        if (canFly) return 0;
+        return terrain.height(x, y) >= LV.rock ? 0.35 : 0;
+      },
+      // nearest point that a non-swimmer can legally occupy (spiral search)
+      nearestShallow(x, y, canSwim) {
+        if (canSwim || !terrain.isDeep(x, y)) return null;
+        for (let r = 40; r <= 1600; r *= 1.6) {
+          for (let a = 0; a < 12; a++) {
+            const ang = (a / 12) * TAU;
+            const nx = clamp(x + Math.cos(ang) * r, 1, w - 1), ny = clamp(y + Math.sin(ang) * r, 1, h - 1);
+            if (!terrain.isDeep(nx, ny)) return [nx, ny];
+          }
+        }
+        return null;
+      },
+    };
+    // fill the tile-level array now that height() (the cache) is live
+    for (let j = 0; j < LTY; j++) for (let i = 0; i < LTX; i++) {
+      lvArr[j * LTX + i] = Math.min(255, levelOf(terrain.height(i * TS + TS / 2, j * TS + TS / 2)));
+    }
+    return terrain;
+  }
+
+  // -------------------------------------------------------------- CREATURE
+  let _id = 0;
+  function makeCreature(genome, x, y, energy) {
+    const ph = develop(genome);
+    return {
+      id: _id++, genome, ph, x, y, vx: 0, vy: 0, energy, age: 0,
+      maxAge: (140 + ph.nodeCount * 4 + ph.mass * 3) * (isFinite(genome.life) ? genome.life : 1),
+      hunger: 0.5, fear: 0, cooldown: 0, reproCD: 0, alive: true,
+      lineage: 0, speciesId: -1,
+      wander: null,   // persistent wander heading (lazily seeded from world rng)
+      stuck: 0,       // consecutive blocked-movement steps (anti-grind counter)
+      fx: null, fy: null,  // last place food was actually eaten
+      crowd: 0,       // neighbours sensed last step (crowding metabolic penalty)
+    };
+  }
+  function wrapDelta(a, b) { return b - a; } // world is bounded — no wrapping
+
+  // ----------------------------------------------------------- SPATIAL GRID
+  function makeGrid(w, h, cell) {
+    const cols = Math.max(1, Math.ceil(w / cell)), rows = Math.max(1, Math.ceil(h / cell));
+    return {
+      cols, rows, cell, buckets: new Array(cols * rows),
+      // reuse bucket arrays: clearing must not allocate (called several times/step)
+      clear() { const b = this.buckets; for (let i = 0; i < b.length; i++) { const bk = b[i]; if (bk && bk.length) bk.length = 0; } },
+      idx(x, y) { let cx = Math.floor(x / this.cell); cx = cx < 0 ? 0 : cx >= this.cols ? this.cols - 1 : cx; let cy = Math.floor(y / this.cell); cy = cy < 0 ? 0 : cy >= this.rows ? this.rows - 1 : cy; return cy * this.cols + cx; },
+      insert(it) { const i = this.idx(it.x, it.y); (this.buckets[i] || (this.buckets[i] = [])).push(it); },
+      around(x, y, fn) {
+        const cx = Math.floor(x / this.cell), cy = Math.floor(y / this.cell);
+        for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
+          const gx = cx + ox, gy = cy + oy; if (gx < 0 || gx >= this.cols || gy < 0 || gy >= this.rows) continue;
+          const b = this.buckets[gy * this.cols + gx]; if (b) for (let k = 0; k < b.length; k++) fn(b[k]);
+        }
+      },
+    };
+  }
+
+  // -------------------------------------------------------------- SEPARATION
+  // HARD positional constraint: bodies are solid. Any overlapping pair is pushed
+  // apart along its centre line, weighted by inverse mass, every step. This is
+  // what makes a 300-deep huddle physically impossible; OVERLAP_ALLOW < 1 still
+  // lets one creature stand partly behind another.
+  const OVERLAP_ALLOW = 0.72;  // fraction of summed radii that may overlap
+  const MAX_PUSH = 26;         // per-iteration displacement clamp (world units)
+  function separate(world, iterations) {
+    const g = world.grid, w = world.w, h = world.h, rng = world.rng, cs = world.creatures, T = world.terrain;
+    const reach = g.cell; // a 3x3 bucket query only guarantees this much range
+    for (let it = 0; it < iterations; it++) {
+      g.clear();
+      for (let i = 0; i < cs.length; i++) if (cs[i].alive) g.insert(cs[i]);
+      for (let i = 0; i < cs.length; i++) {
+        const a = cs[i];
+        if (!a.alive) continue;
+        g.around(a.x, a.y, function (b) {
+          if (b === a || !b.alive || b.id <= a.id) return;  // visit each pair once
+          let minD = ((a.ph.bodyRX || a.ph.radius) + (b.ph.bodyRX || b.ph.radius)) * OVERLAP_ALLOW;
+          if (minD > reach) minD = reach;
+          if (minD < 2) minD = 2;
+          let dx = b.x - a.x, dy = b.y - a.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 >= minD * minD) return;
+          let d = Math.sqrt(d2), nx, ny;
+          if (d < 1e-4) { const ang = rng() * Math.PI * 2; nx = Math.cos(ang); ny = Math.sin(ang); d = 0; }
+          else { nx = dx / d; ny = dy / d; }
+          const overlap = minD - d;
+          const ma = a.ph.mass + 0.2, mb = b.ph.mass + 0.2, tot = ma + mb;
+          let pa = overlap * (mb / tot), pb = overlap * (ma / tot);
+          if (!isFinite(pa) || pa < 0) pa = 0; if (!isFinite(pb) || pb < 0) pb = 0;
+          if (pa > MAX_PUSH) pa = MAX_PUSH;
+          if (pb > MAX_PUSH) pb = MAX_PUSH;
+          const ax = clamp(a.x - nx * pa, 1, w - 1), ay = clamp(a.y - ny * pa, 1, h - 1);
+          const bx = clamp(b.x + nx * pb, 1, w - 1), by = clamp(b.y + ny * pb, 1, h - 1);
+          // crowding must never push a land animal off the shelf and drown it
+          const ok = (cr, px, py) => cr.ph.canFly || (T.isDeep(px, py) ? !!cr.ph.canSwim
+            : T.isWater(px, py) ? true
+            : T.level(px, py) - T.level(cr.x, cr.y) <= T.maxStep);
+          if (ok(a, ax, ay)) { a.x = ax; a.y = ay; }
+          if (ok(b, bx, by)) { b.x = bx; b.y = by; }
+        });
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------ WORLD
+  function makeWorld(opts) {
+    opts = opts || {};
+    const w = opts.w || 3200, h = opts.h || 2000;
+    const seed = (opts.seed >>> 0) || 12345;
+    const rng = makeRNG(seed); _id = 0;
+    // relief resolution is drawn per world: some islands are low and rolling,
+    // others are 90-block alpine monsters
+    const elevSteps = 16 + Math.round(rng() * 74);
+    const terrain = makeTerrain(w, h, rng, elevSteps, opts.tileSize);
+    // Everything density-related is expressed per BASE_W x BASE_H and multiplied
+    // by areaScale, so enlarging the map does not silently starve the ecosystem.
+    const areaScale = (w * h) / (BASE_W * BASE_H);
+    const world = {
+      w, h, seed, rng, terrain, t: 0, areaScale,
+      maxPlants: Math.max(200, Math.round(CAPS.PLANTS * areaScale)),
+      // hard ceiling on submerged flora + a live count, so the unreachable
+      // sea-floor larder can never soak up the whole regrowth budget
+      maxDeepPlants: Math.max(60, Math.round(CAPS.PLANTS * areaScale * 0.16)),
+      deepPlants: 0,
+      creatures: [], plants: [], grid: makeGrid(w, h, 150),
+      pGrid: makeGrid(w, h, 110), carGrid: makeGrid(w, h, 110),
+      params: {
+        mutationRate: opts.mutationRate != null ? opts.mutationRate : 0.18,
+        plantRate: opts.plantRate != null ? opts.plantRate : 90,
+        plantEnergy: 30, startPop: opts.startPop || 140,
+        startPlants: opts.startPlants != null ? opts.startPlants : 500,
+        dayLen: 6, yearLen: 70, timeScale: opts.timeScale != null ? opts.timeScale : 0.01,
+      },
+      flags: Object.assign({ brains: true, sexual: true, dayNight: true, seasons: true, toxins: true }, opts.flags || {}),
+      species: new Map(), nextSpecies: 0,
+      // Genealogy: one node per individual, parent-linked. Recorded live rather
+      // than reconstructed, so it is the actual descent of the run.
+      phylo: { root: null, byId: new Map(), count: 0, max: 400, acc: 0 },
+      // full individual pedigree, recorded in parallel with the species tree
+      ped: { root: null, count: 0, max: 26000 },
+      light: 1, season: 1,
+      stats: emptyStats(), history: [], _sampleAcc: 0, _specAcc: 0, extinct: false,
+      carrion: [], hazards: [],
+      deaths: { starvation: 0, oldage: 0, predation: 0, toxin: 0 },
+      deathLog: [], // recent {cause, age, gen, species, t}
+      _scratchHid: new Float64Array(HID), _scratchOut: new Float64Array(OUT), _scratchIn: new Float64Array(IN),
+    };
+    // Seed the flora to a real starting density (attempt-capped): the biome
+    // acceptance test rejects most candidates, so a fixed attempt count would
+    // start the world in a famine.
+    {
+      const target = clamp(Math.round(world.params.startPlants), 0, world.maxPlants);
+      for (let tries = 0; tries < target * 20 + 200 && world.plants.length < target; tries++) spawnPlant(world);
+    }
+    // single synthetic root, so the genealogy reads as one tree rather than as
+    // one disconnected strand per founder
+    const mkRoot = () => ({ id: -1, p: null, kids: [], t0: 0, t1: -1, alive: true, root: true,
+      sp: -1, gen: -1, pop: 0, peak: 0, m: 0, nn: 0, sc: 1, el: 1, nk: 0, lg: 1, carn: 0, fly: 0, swim: 0 });
+    world.phylo.root = mkRoot();
+    world.ped.root = mkRoot();
+    // Founder demes scale with area and are rejection-sampled onto habitable
+    // ground, so a big world starts as many dispersed groups, not one dense blob.
+    const K = clamp(Math.min(Math.round(7 * areaScale), Math.max(1, Math.ceil(world.params.startPop / 8))), 1, 40);
+    const colonies = [];
+    for (let i = 0; i < K; i++) {
+      let cxw = 0, cyw = 0, ok = false;
+      for (let tries = 0; tries < 60 && !ok; tries++) {
+        cxw = 150 + rng() * (w - 300); cyw = 150 + rng() * (h - 300);
+        const b = terrain.biomeAt(cxw, cyw);
+        ok = (b === 'plains' || b === 'forest' || b === 'savanna' || b === 'marsh' || b === 'beach');
+      }
+      colonies.push([cxw, cyw]);
+    }
+    for (let i = 0; i < world.params.startPop; i++) {
+      const g = seedHerbivore(rng);
+      const col = colonies[(rng() * K) | 0];
+      let x = clamp(col[0] + gauss(rng) * 160, 1, w - 1), y = clamp(col[1] + gauss(rng) * 160, 1, h - 1);
+      // founders have no fins: never strand one in open water
+      if (terrain.isDeep(x, y)) { const spot = terrain.nearestShallow(x, y, false); if (spot) { x = spot[0]; y = spot[1]; } }
+      const founder = makeCreature(g, x, y, 30 + rng() * 10);
+      founder.pnode = pedNode(world, world.ped.root, founder);
+      world.creatures.push(founder);
+    }
+    separate(world, 8);   // resolve founder overlap before the first frame
+    assignSpecies(world);
+    world.step = (dt) => stepWorld(world, dt);
+    return world;
+  }
+
+  // ---------------------------------------------------------------- PHYLOGENY
+  // A SPECIES tree, not a pedigree. One node per species, branching from
+  // whichever species its founder split out of. That is both the readable
+  // granularity and the biologically meaningful one: a branch ends when the
+  // species goes extinct, and what still reaches the bottom is what is winning.
+  // ---- individual pedigree: one node per creature, parent-linked
+  function pedNode(world, parent, c) {
+    const P = world.ped;
+    const n = {
+      p: parent, kids: [], t0: world.bt || 0, t1: -1, alive: true,
+      sp: c.speciesId, gen: c.lineage, pop: 1, peak: 1,
+      m: c.ph.mass, nn: c.ph.nodeCount, sc: c.genome.scale || 1,
+      el: c.ph.elong, nk: c.ph.neck, lg: c.ph.legLen,
+      carn: c.ph.carnivory, fly: c.ph.canFly, swim: c.ph.canSwim,
+    };
+    if (parent) parent.kids.push(n);
+    P.count++;
+    return n;
+  }
+  function pedDie(world, c) {
+    if (!c.pnode || !c.pnode.alive) return;
+    c.pnode.alive = false; c.pnode.pop = 0;
+    c.pnode.t1 = world.bt || 0;
+  }
+  // Extinct branches erode from their tips; every node on a path to a living
+  // creature is kept, so the surviving backbone stays exact.
+  function prunePed(world) {
+    const P = world.ped;
+    if (!P.root || P.count <= P.max) return;
+    const leaves = [], stack = [P.root];
+    while (stack.length) {
+      const n = stack.pop();
+      for (let i = 0; i < n.kids.length; i++) stack.push(n.kids[i]);
+      if (!n.alive && n.kids.length === 0 && n.p) leaves.push(n);
+    }
+    leaves.sort((a, b) => a.t1 - b.t1);
+    const target = Math.floor(P.max * 0.75);
+    for (let i = 0; i < leaves.length && P.count > target; i++) {
+      const n = leaves[i], ks = n.p.kids, j = ks.indexOf(n);
+      if (j >= 0) ks.splice(j, 1);
+      P.count--;
+    }
+  }
+
+  function speciesNode(world, id, parentId, c) {
+    const P = world.phylo;
+    const parent = (parentId >= 0 && P.byId.get(parentId)) || P.root;
+    const n = {
+      id, p: parent, kids: [], t0: world.bt || 0, t1: -1, alive: true,
+      pop: 1, peak: 1, sp: id, gen: c.lineage,
+      m: c.ph.mass, nn: c.ph.nodeCount, sc: c.genome.scale || 1,
+      el: c.ph.elong, nk: c.ph.neck, lg: c.ph.legLen,
+      carn: c.ph.carnivory, fly: c.ph.canFly, swim: c.ph.canSwim,
+    };
+    parent.kids.push(n);
+    P.byId.set(id, n);
+    P.count++;
+    return n;
+  }
+  // Bound the historical tree: drop extinct leaves, oldest extinction first.
+  function prunePhylo(world) {
+    const P = world.phylo;
+    if (!P.root || P.count <= P.max) return;
+    const leaves = [];
+    const stack = [P.root];
+    while (stack.length) {
+      const n = stack.pop();
+      for (let i = 0; i < n.kids.length; i++) stack.push(n.kids[i]);
+      if (!n.alive && n.kids.length === 0 && n.p) leaves.push(n);
+    }
+    leaves.sort((a, b) => a.t1 - b.t1);
+    const target = Math.floor(P.max * 0.75);
+    for (let i = 0; i < leaves.length && P.count > target; i++) {
+      const n = leaves[i], ks = n.p.kids, j = ks.indexOf(n);
+      if (j >= 0) ks.splice(j, 1);
+      P.byId.delete(n.id);
+      P.count--;
+    }
+  }
+
+  function spawnPlant(world, nearPatch) {
+    if (world.plants.length >= world.maxPlants) return;
+    let x, y;
+    if (nearPatch && world.plants.length) {
+      const p = world.plants[(world.rng() * world.plants.length) | 0];
+      x = clamp(p.x + gauss(world.rng) * 35, 0, world.w);
+      y = clamp(p.y + gauss(world.rng) * 35, 0, world.h);
+    } else { x = world.rng() * world.w; y = world.rng() * world.h; }
+    // biome gating -> resource heterogeneity (lush marsh, barren scree)
+    const biome = world.terrain.biomeAt(x, y);
+    if (biome === 'deep' && world.deepPlants >= world.maxDeepPlants) return;
+    const accept = BIOME_FERT[biome] || 0.05;
+    if (world.rng() > accept) return;
+    world.plants.push(makePlant(world, x, y, biome));
+  }
+
+  // Sea-floor growth is worth ~2.4x a land plant but is only reachable by a
+  // creature with real fins: an entire food supply that stays untouched until
+  // the lineage evolves into it.
+  function makePlant(world, x, y, biome) {
+    const deep = biome === 'deep';
+    if (deep) world.deepPlants++;
+    return {
+      x, y, deep,
+      // Hard-to-reach larders are worth more: the sea floor needs fins, the
+      // summit needs wings. Both are rich, both are gated by a body plan.
+      e: world.params.plantEnergy * (deep ? 2.4 : biome === 'snow' ? 3.2 : biome === 'scree' ? 2.6
+         : biome === 'rock' ? 1.7 : biome === 'shallow' ? 1.25 : 1),
+      alpine: biome === 'snow' || biome === 'scree',
+      water: deep || biome === 'shallow' || biome === 'marsh',
+    };
+  }
+
+  function emptyStats() {
+    return { pop: 0, herb: 0, carn: 0, plants: 0, species: 0, avgNodes: 0, avgMass: 0, avgToxin: 0, fliers: 0, aquatic: 0, divers: 0, brainsActive: 0, carrion: 0, hazards: 0, crowd: 0 };
+  }
+  function computeStats(world) {
+    const s = emptyStats(); s.plants = world.plants.length; s.carrion = world.carrion.length; s.hazards = world.hazards.length; const cs = world.creatures; s.pop = cs.length;
+    const liveSpecies = new Set();
+    for (const c of cs) {
+      const p = c.ph;
+      if (p.carnivory > 0.25) s.carn++; else s.herb++;
+      s.avgNodes += p.nodeCount; s.avgMass += p.mass; s.avgToxin += p.toxin; s.crowd += c.crowd;
+      if (p.canFly) s.fliers++; if (p.speedWater > p.speedLand) s.aquatic++; if (p.canSwim) s.divers++;
+      liveSpecies.add(c.speciesId);
+    }
+    s.species = liveSpecies.size;
+    if (s.pop) { s.avgNodes /= s.pop; s.avgMass /= s.pop; s.avgToxin /= s.pop; s.crowd /= s.pop; }
+    return s;
+  }
+
+  function assignSpecies(world) {
+    const reps = [];
+    for (const [id, sp] of world.species) reps.push({ id, sp });
+    for (const c of world.creatures) {
+      const sig = signature(c.genome, c.ph);
+      c._sig = sig;
+      let bestId = -1, bestD = Infinity;
+      for (const { id, sp } of reps) { const d = geneticDistance(sig, sp.rep); if (d < bestD) { bestD = d; bestId = id; } }
+      if (bestD <= SPECIES_THRESH) c.speciesId = bestId;
+      else if (world.species.size < CAPS.SPECIES) {
+        const id = world.nextSpecies++;
+        const sp = { id, rep: sig, color: speciesColor(id), count: 0 };
+        world.species.set(id, sp); reps.push({ id, sp });
+        // the new species branches off whatever its founder belonged to
+        speciesNode(world, id, c.speciesId, c);
+        c.speciesId = id;
+      } else { c.speciesId = bestId >= 0 ? bestId : 0; } // forced assign if at cap
+    }
+    // recount + centroids + cull empties + refresh reps to a current member
+    const counts = new Map(), sumX = new Map(), sumY = new Map();
+    for (const c of world.creatures) {
+      counts.set(c.speciesId, (counts.get(c.speciesId) || 0) + 1);
+      sumX.set(c.speciesId, (sumX.get(c.speciesId) || 0) + c.x);
+      sumY.set(c.speciesId, (sumY.get(c.speciesId) || 0) + c.y);
+    }
+    for (const [id, sp] of [...world.species]) {
+      const cnt = counts.get(id) || 0;
+      if (cnt === 0) { world.species.delete(id); continue; }
+      sp.count = cnt; sp.cx = sumX.get(id) / cnt; sp.cy = sumY.get(id) / cnt;
+      if (world.rng() < 0.25) { const m = world.creatures.find(c => c.speciesId === id); if (m) sp.rep = m._sig; }
+    }
+    // phylogeny bookkeeping: live population, peak, and extinction
+    for (const [id, node] of world.phylo.byId) {
+      const cnt = counts.get(id) || 0;
+      node.pop = cnt;
+      if (cnt > node.peak) node.peak = cnt;
+      if (cnt === 0) {
+        if (node.alive) { node.alive = false; node.t1 = world.bt || 0; }
+      } else {
+        node.alive = true; node.t1 = -1;
+        // refresh the trait snapshot from a current member, so clicking a node
+        // shows what that species looks like NOW rather than at its founding
+        const m = world.creatures.find(c => c.speciesId === id);
+        if (m) {
+          node.m = m.ph.mass; node.nn = m.ph.nodeCount; node.sc = m.genome.scale || 1;
+          node.el = m.ph.elong; node.nk = m.ph.neck; node.lg = m.ph.legLen;
+          node.carn = m.ph.carnivory; node.fly = m.ph.canFly; node.swim = m.ph.canSwim;
+          node.gen = m.lineage;
+        }
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------- STEERING
+  // Desires are accumulated as WEIGHTED UNIT VECTORS. In v5 they were raw
+  // displacement vectors, so a term measured in hundreds of world-units (kin
+  // centroid, edge push) silently drowned out everything else — that is the
+  // mechanism behind the huddle-and-starve failure. Module-scope scratch avoids
+  // allocating a closure per creature per step.
+  let _dx = 0, _dy = 0;
+  const _grad = new Float64Array(2);
+  function addDir(vx, vy, wgt) {
+    if (!wgt) return;
+    const l = Math.sqrt(vx * vx + vy * vy);
+    if (l > 1e-6 && isFinite(l)) { _dx += (vx / l) * wgt; _dy += (vy / l) * wgt; }
+  }
+
+  // ------------------------------------------------------------------ STEP
+  function stepWorld(world, dt) {
+    if (world.extinct) return world.stats;
+    dt = Math.min(dt, 0.1);
+    const { w, h, terrain, params, flags } = world; const rng = world.rng;
+    // BIOLOGICAL time-scale: all life processes (aging, metabolism, breeding,
+    // growth, decay, seasons) advance at bdt — ~100x slower than wall time — so
+    // individuals live hours-to-days. Physical MOVEMENT stays on real dt (still
+    // visibly moves). Use the speed control to fast-forward through generations.
+    const BIO = params.timeScale != null ? params.timeScale : 0.01;
+    const bdt = dt * BIO;
+    world.bt = (world.bt || 0) + bdt;
+
+    // environment cycles (on biological time)
+    world.light = flags.dayNight ? 0.5 + 0.5 * Math.sin((world.bt / params.dayLen) * 2 * Math.PI) : 1;
+    world.season = flags.seasons ? 0.5 + 0.5 * Math.sin((world.bt / params.yearLen) * 2 * Math.PI) : 1;
+    const plantMul = flags.seasons ? (0.25 + 1.5 * world.season) : 1;
+
+    // grids (persistent objects, re-cleared: no per-step allocation)
+    const cGrid = world.grid; cGrid.clear(); for (const c of world.creatures) cGrid.insert(c);
+    const pGrid = world.pGrid;
+    world._pgAge = (world._pgAge || 0) + 1;
+    if (world._pgAge >= 6 || world._pgDirty) {
+      world._pgAge = 0; world._pgDirty = false;
+      pGrid.clear(); for (const p of world.plants) if (!p.gone) pGrid.insert(p);
+    }
+
+    // density-dependent plant regrowth: local carrying capacity => patchiness &
+    // grazing recovery (herbivores locally deplete; patches regrow). No objective.
+    const want = params.plantRate * plantMul * bdt * world.areaScale; // per-area rate
+    let whole = Math.floor(want); if (rng() < want - whole) whole++;
+    for (let i = 0; i < whole; i++) {
+      if (world.plants.length >= world.maxPlants) break;
+      let x, y;
+      // Seed near an existing patch, but never near a submerged one: otherwise
+      // the sea's uneaten stock hijacks the regrowth budget (see above).
+      let parent = null;
+      if (rng() < 0.6 && world.plants.length) {
+        for (let a = 0; a < 6; a++) {
+          const pp = world.plants[(rng() * world.plants.length) | 0];
+          if (!pp.deep) { parent = pp; break; }
+        }
+      }
+      if (parent) { x = clamp(parent.x + gauss(rng) * 35, 0, w); y = clamp(parent.y + gauss(rng) * 35, 0, h); }
+      else { x = rng() * w; y = rng() * h; }
+      let local = 0; pGrid.around(x, y, (pl) => { const dx = wrapDelta(x, pl.x, w), dy = wrapDelta(y, pl.y, h); if (dx * dx + dy * dy < 1600) local++; });
+      if (local >= 5) continue; // local carrying capacity
+      const biome = terrain.biomeAt(x, y);
+      if (biome === 'deep' && world.deepPlants >= world.maxDeepPlants) continue;
+      if (rng() > (BIOME_FERT[biome] || 0.05)) continue;
+      const pl = makePlant(world, x, y, biome);
+      world.plants.push(pl); pGrid.insert(pl);   // visible to foragers immediately
+    }
+
+    // carrion grid (dead bodies = scavenging resource loop)
+    const carGrid = world.carGrid; carGrid.clear(); for (const cz of world.carrion) carGrid.insert(cz);
+
+    const newborns = []; const eaten = new Set();
+    const hid = world._scratchHid, out = world._scratchOut, inp = world._scratchIn;
+
+    for (const c of world.creatures) {
+      if (!c.alive) continue;
+      const p = c.ph; c.cooldown = Math.max(0, c.cooldown - dt); c.reproCD = Math.max(0, c.reproCD - bdt); c.age += bdt;
+
+      // Safety net: a finless creature that has somehow ended up past the
+      // drop-off (edge case in any push/spawn path) is returned to solid ground
+      // instead of starving in place. Rare, so the spiral search is affordable.
+      if (!p.canSwim && !p.canFly && terrain.isDeep(c.x, c.y)) {
+        const spot = terrain.nearestShallow(c.x, c.y, false);
+        if (spot) { c.x = spot[0]; c.y = spot[1]; }
+      }
+      const myLevel = terrain.level(c.x, c.y);
+      // a target is only worth pursuing if the movement rule permits reaching it
+      const reachable = (tx, ty) => {
+        if (p.canFly) return true;
+        if (terrain.isDeep(tx, ty)) return !!p.canSwim;     // swimmers only
+        if (terrain.isWater(tx, ty)) return true;           // wadeable shallows
+        return terrain.level(tx, ty) - myLevel <= terrain.maxStep;
+      };
+      const inWater = terrain.isWater(c.x, c.y);
+      let upkeep = p.upkeep; if (inWater && p.speedWater < p.speedLand) upkeep += 0.4;
+      c.energy -= upkeep * 0.55 * bdt;
+      c.hunger = clamp(1 - c.energy / p.storage, 0, 1);
+
+      // effective sense (night reduces; eyes mitigate)
+      const nightFloor = 1 - (1 - world.light) / (1 + p.eyeStat);
+      const effSense = p.sense * (flags.dayNight ? clamp(nightFloor, 0.45, 1) : 1);
+      const senseSq = effSense * effSense;
+
+      // perception
+      let bestFood = null, bestFoodD = Infinity, bestFoodCarrion = false, threat = null, threatD = Infinity, prey = null, preyD = Infinity, mate = null, mateD = Infinity;
+      let kin = 0, kinX = 0, kinY = 0, near = 0;
+      let sepX = 0, sepY = 0, sepN = 0;   // crowd-avoidance (physical, not visual)
+      pGrid.around(c.x, c.y, (pl) => {
+        if (pl.gone || eaten.has(pl)) return;
+        if (pl.deep && !p.canSwim) return;   // on the sea floor: divers only
+        const dx = wrapDelta(c.x, pl.x, w), dy = wrapDelta(c.y, pl.y, h), d2 = dx * dx + dy * dy;
+        if (d2 >= senseSq || d2 >= bestFoodD) return;
+        if (!reachable(pl.x, pl.y)) return;  // visible up a cliff is not food
+        bestFoodD = d2; bestFood = pl; bestFoodCarrion = false;
+      });
+      carGrid.around(c.x, c.y, (cz) => {
+        if (cz.dead) return;
+        const dx = wrapDelta(c.x, cz.x, w), dy = wrapDelta(c.y, cz.y, h), d2 = dx * dx + dy * dy;
+        if (d2 >= senseSq || d2 >= bestFoodD) return;
+        if (!reachable(cz.x, cz.y)) return;
+        bestFoodD = d2; bestFood = cz; bestFoodCarrion = true;
+      });
+      const fertile = c.age > maturity(p) && c.energy >= reproThreshold(p) && c.reproCD <= 0;
+      cGrid.around(c.x, c.y, (o) => {
+        if (o === c || !o.alive) return;
+        const dx = wrapDelta(c.x, o.x, w), dy = wrapDelta(c.y, o.y, h), d2 = dx * dx + dy * dy;
+        // Personal space is FELT, not seen: evaluated before the sense cutoff so
+        // a blind creature still refuses to stand inside another one.
+        const pr = (p.radius + o.ph.radius) * 1.35 + 10;
+        if (d2 < pr * pr) {
+          const dd = Math.sqrt(d2) || 1e-3;
+          const push = (pr - dd) / pr;                      // 0 (touching range) .. 1 (co-located)
+          sepX -= (dx / dd) * push; sepY -= (dy / dd) * push; sepN++;
+        }
+        if (d2 > senseSq) return;
+        near++;
+        if (o.speciesId === c.speciesId) { kin++; kinX += dx; kinY += dy; }
+        if (o.ph.attack > p.defense + 3 && o.ph.mass > p.mass * 0.9 && d2 < threatD) { threatD = d2; threat = o; }
+        if (p.attack > 4 && o.ph.mass < p.mass * 1.1 && d2 < preyD && reachable(o.x, o.y)) { preyD = d2; prey = o; }
+        if (fertile && o.speciesId === c.speciesId && o.age > maturity(o.ph) && o.energy >= reproThreshold(o.ph) && o.reproCD <= 0 && d2 < mateD && reachable(o.x, o.y)) { mateD = d2; mate = o; }
+      });
+      c.fear = threat ? clamp(1 - Math.sqrt(threatD) / effSense, 0, 1) : 0;
+      c.crowd = near;
+      // Crowding metabolic penalty: standing in a dense mob costs energy, so
+      // huddling is now selected AGAINST rather than being a free strategy.
+      if (near > 8) c.energy -= (near - 8) * 0.030 * p.upkeep * bdt;
+
+      const realizedSpeed = bestSpeed(p, inWater);
+      let hunting = false;
+      // brain runs FIRST: its outputs weight the desires below instead of being
+      // bolted on afterwards.
+      let pursueGate = 1, avoidPrey = 0, socialGain = 1;
+      if (flags.brains) {
+        const norm = (d, ref) => clamp(d / ref, -1, 1);
+        inp[0] = 1; inp[1] = c.hunger; inp[2] = c.fear; inp[3] = clamp(c.energy / p.storage, 0, 1);
+        inp[4] = inWater ? 1 : 0; inp[5] = world.light;
+        inp[6] = bestFood ? norm(wrapDelta(c.x, bestFood.x, w), effSense) : 0;
+        inp[7] = bestFood ? norm(wrapDelta(c.y, bestFood.y, h), effSense) : 0;
+        inp[8] = bestFood ? clamp(Math.sqrt(bestFoodD) / effSense, 0, 1) : 1;
+        inp[9] = threat ? norm(wrapDelta(c.x, threat.x, w), effSense) : 0;
+        inp[10] = threat ? norm(wrapDelta(c.y, threat.y, h), effSense) : 0;
+        inp[11] = threat ? clamp(Math.sqrt(threatD) / effSense, 0, 1) : 1;
+        inp[12] = prey ? norm(wrapDelta(c.x, prey.x, w), effSense) : 0;
+        inp[13] = prey ? norm(wrapDelta(c.y, prey.y, h), effSense) : 0;
+        inp[14] = prey ? clamp(Math.sqrt(preyD) / effSense, 0, 1) : 1;
+        inp[15] = prey ? prey.ph.hue : 0;
+        inp[16] = mate ? norm(wrapDelta(c.x, mate.x, w), effSense) : 0;
+        inp[17] = mate ? norm(wrapDelta(c.y, mate.y, h), effSense) : 0;
+        inp[18] = mate ? clamp(Math.sqrt(mateD) / effSense, 0, 1) : 1;
+        inp[19] = near ? kin / near : 0;
+        inp[20] = world.season;
+        inp[21] = clamp(terrain.height(c.x, c.y), 0, 1);
+        inp[22] = clamp(terrain.shoreDist(c.x, c.y) / 900, 0, 1);
+        inp[23] = c._inHazard ? 1 : 0;
+        inp[24] = clamp(p.toxin / 4, 0, 1);
+        inp[25] = clamp(c.age / Math.max(1, c.maxAge), 0, 1);
+        brainForward(c.genome.brain, inp, hid, out);
+        pursueGate = 1 + out[O_PURSUE];
+        avoidPrey = clamp(out[O_AVOID], 0, 1);
+        socialGain = clamp(1 + out[O_SOCIAL], 0, 2); // scales cohesion; cannot create it
+      }
+
+      // ---- desire mix (all terms are unit vectors x weight) -----------------
+      _dx = 0; _dy = 0;
+      // 1. SEPARATION — dominant at close range, never overridden by herding.
+      if (sepN > 0) addDir(sepX, sepY, 2.6);
+      // 2. flight
+      if (threat && c.fear > 0.3) addDir(c.x - threat.x, c.y - threat.y, 1.6 + 1.4 * c.fear);
+      // 3. feeding — outranks socialising whenever actually hungry (the v5 bug
+      //    was fertile adults ignoring food to walk at the herd centroid).
+      const starving = c.hunger > 0.45;
+      if (p.attack > 4 && prey && c.hunger > 0.3) { addDir(prey.x - c.x, prey.y - c.y, starving ? 1.9 : 1.1); hunting = true; }
+      if (bestFood && c.hunger > 0.12) addDir(bestFood.x - c.x, bestFood.y - c.y, starving ? 2.0 : 1.15);
+      // 4. mate seeking -- urgency rises with age past maturity, so an animal
+      //    that has gone a long time without breeding commits harder to finding
+      //    a partner (up to 2.2x) instead of splitting attention evenly forever.
+      const matAge = maturity(p), urgency = fertile
+        ? clamp(1 + (c.age - matAge) / Math.max(40, matAge * 3), 1, 2.2) : 1;
+      if (fertile && mate) addDir(mate.x - c.x, mate.y - c.y, 1.8 * urgency);
+      else if (fertile) {
+        const spp = world.species.get(c.speciesId);
+        if (spp && spp.count > 1 && isFinite(spp.cx)) {
+          const rdx = spp.cx - c.x, rdy = spp.cy - c.y;
+          if (rdx * rdx + rdy * rdy > 4900) addDir(rdx, rdy, 1.5 * urgency);   // head for the herd
+        }
+      }
+      // 5. cohesion — DISTANCE-GATED: pulls only while the herd is farther away
+      //    than preferred spacing, and fades as hunger rises. Bounded by design.
+      if (kin > 0) {
+        const kx = kinX / kin, ky = kinY / kin, kd = Math.hypot(kx, ky);
+        const prefer = p.radius * 3 + 45;
+        if (kd > prefer) addDir(kx, ky, 0.45 * (1 - c.hunger) * socialGain);
+      }
+      // 6. evolved steering
+      if (flags.brains) addDir(out[O_MOVEX], out[O_MOVEY], 0.85 * clamp(Math.hypot(out[O_MOVEX], out[O_MOVEY]), 0, 1.4));
+      // 7. FORAGING SEARCH. With nothing edible in range a random walk barely
+      //    covers ground, so a hungry animal commits to a heading instead --
+      //    near-ballistic search sweeps far more area per unit of energy -- and
+      //    will head back to the last place it actually found food.
+      const searching = c.hunger > 0.4 && !bestFood && !(prey && p.attack > 4);
+      if (c.wander == null) c.wander = rng() * Math.PI * 2;
+      c.wander += (rng() - 0.5) * (searching ? 0.30 : 1.6) * dt;
+      addDir(Math.cos(c.wander), Math.sin(c.wander),
+             (bestFood || prey || mate || threat) ? 0.22 : (searching ? 1.6 : 0.75));
+      if (fertile && !mate) addDir(Math.cos(c.wander + 1.7), Math.sin(c.wander + 1.7), 0.35 * (urgency - 1));
+      // site fidelity: walk back to a remembered feeding ground
+      if (searching && c.fx != null) {
+        const fdx = c.fx - c.x, fdy = c.fy - c.y;
+        if (fdx * fdx + fdy * fdy > 900) addDir(fdx, fdy, 1.1 * c.hunger);
+      }
+      let dirx = _dx, diry = _dy;
+
+      // resolve hunting (gated by brain pursue/avoid — aposematism lives here)
+      if (hunting && prey) {
+        const eager = pursueGate - avoidPrey * 1.5;
+        const rr = (p.radius + prey.ph.radius + p.reach);
+        if (eager > 0.2 && preyD < rr * rr && c.cooldown <= 0) { resolveAttack(world, c, prey, flags); c.cooldown = 0.4; }
+      }
+      // forage consume (plant or carrion)
+      if (bestFood) {
+        const rr = p.radius + p.reach + 6;
+        if (bestFoodD < rr * rr) {
+          if (bestFoodCarrion) { if (!bestFood.dead) { bestFood.dead = true; c.energy = Math.min(p.storage, c.energy + bestFood.e * 0.9); } }
+          else if (!eaten.has(bestFood)) { eaten.add(bestFood); c.energy = Math.min(p.storage, c.energy + bestFood.e * p.digest); }
+          c.fx = bestFood.x; c.fy = bestFood.y;   // remember where food was found
+        }
+      }
+
+      // edge avoidance: bounded world, weighted like every other desire so it
+      // cannot pin a creature to the wall or swamp the mix.
+      _dx = dirx; _dy = diry;
+      const EM = 140;
+      if (c.x < EM) addDir(1, 0, (1 - c.x / EM) ** 2 * 3.2);
+      else if (c.x > w - EM) addDir(-1, 0, (1 - (w - c.x) / EM) ** 2 * 3.2);
+      if (c.y < EM) addDir(0, 1, (1 - c.y / EM) ** 2 * 3.2);
+      else if (c.y > h - EM) addDir(0, -1, (1 - (h - c.y) / EM) ** 2 * 3.2);
+      // shoreline: land animals are pushed inland by the distance-to-water
+      // gradient. Isotropic, so sliding along the coast is no longer free.
+      if (!p.canSwim && !p.canFly) {
+        const sdv = terrain.shoreDist(c.x, c.y);
+        if (sdv < 110) {
+          const q = 1 - sdv / 110;
+          terrain.shoreGrad(c.x, c.y, _grad);
+          addDir(_grad[0], _grad[1], 1.9 * q * q);
+        }
+      }
+      dirx = _dx; diry = _dy;
+      // move (terrain modulates land speed; mountains cost extra upkeep)
+      const len = Math.hypot(dirx, diry);
+      const tMul = terrain.speedMul(c.x, c.y, p.canFly, p.canSwim);
+      const sp = realizedSpeed * (c.fear > 0.3 ? 1.15 : 1) * tMul;
+      if (len > 1e-6) { c.vx = (dirx / len) * sp; c.vy = (diry / len) * sp; } else { c.vx = 0; c.vy = 0; }
+      let nx = clamp(c.x + c.vx * dt, 1, w - 1), ny = clamp(c.y + c.vy * dt, 1, h - 1);
+      // HARD terrain constraints, axis-separated so a creature slides along an
+      // obstacle instead of dead-stopping against it:
+      //   - deep water is impassable without fins
+      //   - you may climb at most ONE block per move. Descent is free. This is
+      //     what makes the summit genuinely unreachable on foot: the massif's
+      //     flanks rise several blocks per step, so alpine food belongs to
+      //     whatever evolves wings.
+      if (!p.canFly) {
+        const lv0 = terrain.level(c.x, c.y);
+        const blocked = (bx, by) => {
+          if (terrain.isDeep(bx, by)) return !p.canSwim;
+          if (terrain.isWater(bx, by)) return false;        // you swim, you do not climb
+          return terrain.level(bx, by) - lv0 > terrain.maxStep;
+        };
+        if (blocked(nx, ny)) {
+          c.stuck = (c.stuck || 0) + 1;
+          if (!blocked(nx, c.y)) { ny = c.y; }
+          else if (!blocked(c.x, ny)) { nx = c.x; }
+          else { nx = c.x; ny = c.y; c.stuck += 3; }
+          // grinding along a wall is movement without progress: after a while,
+          // give up on the current heading and strike out somewhere else
+          if (c.stuck > 40) { c.stuck = 0; c.wander = rng() * Math.PI * 2; }
+        } else if (c.stuck) { c.stuck = 0; }
+      }
+      c.x = nx; c.y = ny;
+      c.energy -= (0.012 * p.mass * (sp / 30) * (sp / 30 + 0.4) + terrain.extraUpkeep(c.x, c.y, p.canFly)) * bdt;
+
+      // hazard (toxin) zones left by toxic corpses
+      let inHazard = false;
+      for (const hz of world.hazards) {
+        const dx = wrapDelta(c.x, hz.x, w), dy = wrapDelta(c.y, hz.y, h);
+        if (dx * dx + dy * dy < hz.r * hz.r) { c.energy -= hz.strength * bdt; inHazard = true; }
+      }
+      c._inHazard = inHazard ? 1 : 0;   // fed back into next step's senses
+
+      if (c.energy <= 0 || c.age >= c.maxAge) {
+        c.alive = false;
+        c.deathCause = c.age >= c.maxAge ? 'oldage' : (inHazard ? 'toxin' : 'starvation');
+        recordDeath(world, c); dropCarrion(world, c);
+        continue;
+      }
+
+      // reproduction: MATING ONLY (no self-cloning). Offspring genome = crossover
+      // of both parents. Gated by maturity + energy + ~60s recovery cooldown.
+      if (fertile && mate && mate.reproCD <= 0 && world.creatures.length + newborns.length < CAPS.POP &&
+          mateD < ((p.radius + mate.ph.radius + 75) ** 2)) {
+        // SEXUAL: offspring genome = crossover of both parents (the normal mode in herds)
+        let litter = 1; if (p.mass < 3 && rng() < 0.6) litter = 2; if (p.mass < 1 && rng() < 0.4) litter = 3;
+        const invest = (c.energy + mate.energy) * 0.30;
+        c.energy -= c.energy * 0.28; mate.energy -= mate.energy * 0.28;
+        c.reproCD = 14; mate.reproCD = 14;
+        for (let L = 0; L < litter && world.creatures.length + newborns.length < CAPS.POP; L++) {
+          const childGenome = mutate(crossover(c.genome, mate.genome, rng), rng, params.mutationRate);
+          const baby = birth(childGenome, c, w, h, rng, invest / litter, Math.max(c.lineage, mate.lineage) + 1, terrain);
+          baby.pnode = pedNode(world, c.pnode, baby);
+          newborns.push(baby);
+        }
+      }
+    }
+
+    if (eaten.size) {
+      for (const pl of eaten) { pl.gone = true; if (pl.deep) world.deepPlants--; }
+      world.plants = world.plants.filter(pl => !pl.gone);
+      world._pgDirty = true;
+    }
+    // decay carrion (rots) & hazards (dissipate); remove consumed/expired
+    for (const cz of world.carrion) { cz.decay -= bdt; cz.e -= 0.5 * bdt; }
+    world.carrion = world.carrion.filter(cz => !cz.dead && cz.decay > 0 && cz.e > 0.5);
+    for (const hz of world.hazards) hz.decay -= bdt;
+    world.hazards = world.hazards.filter(hz => hz.decay > 0);
+    world.creatures = world.creatures.filter(c => c.alive);
+    for (const b of newborns) world.creatures.push(b);
+    // HARD non-overlap constraint, applied after movement and birth.
+    separate(world, 2);
+
+    world.t += dt;
+    world._specAcc += dt;
+    if (world._specAcc >= 1.5) { world._specAcc = 0; assignSpecies(world); }
+    world.phylo.acc += dt;
+    if (world.phylo.acc >= 3) { world.phylo.acc = 0; prunePhylo(world); prunePed(world); }
+
+    world._sampleAcc += dt;
+    world.stats = computeStats(world);
+    world.stats.brainsActive = flags.brains ? 1 : 0;
+    if (world._sampleAcc >= 0.25) {
+      world._sampleAcc = 0;
+      world.history.push({ t: world.t, ...world.stats, light: world.light, season: world.season });
+      if (world.history.length > 4000) world.history.splice(0, 2000);
+    }
+    if (world.creatures.length === 0) world.extinct = true;
+    return world.stats;
+  }
+
+  function recordDeath(world, c) {
+    const cause = c.deathCause || 'starvation';
+    world.deaths[cause] = (world.deaths[cause] || 0) + 1;
+    pedDie(world, c);
+    world.deathLog.push({ cause, age: +c.age.toFixed(1), gen: c.lineage, species: c.speciesId, t: +world.t.toFixed(1) });
+    if (world.deathLog.length > 60) world.deathLog.shift();
+  }
+  function dropCarrion(world, c) {
+    // toxic corpse -> transient hazard zone (an avoided niche)
+    if (c.ph.toxin > 0.05) world.hazards.push({ x: c.x, y: c.y, r: 30 + c.ph.toxin * 20, strength: 6 + c.ph.toxin * 10, decay: 8 + c.ph.toxin * 4 });
+    world.carrion.push({ x: c.x, y: c.y, e: 10 + c.ph.mass * 6, decay: 18 });
+    if (world.carrion.length > 400) world.carrion.shift();
+  }
+  function birth(genome, parent, w, h, rng, energy, lineage, terrain) {
+    const ang = rng() * Math.PI * 2;
+    const off = parent.ph.radius + 10;
+    let x = clamp(parent.x + Math.cos(ang) * off, 1, w - 1);
+    let y = clamp(parent.y + Math.sin(ang) * off, 1, h - 1);
+    const baby = makeCreature(genome, x, y, energy);
+    // a finless calf born to swimming parents would otherwise be stranded in
+    // open water with no way out: relocate it to the nearest legal ground
+    if (terrain && !baby.ph.canSwim && !baby.ph.canFly) {
+      const spot = terrain.nearestShallow(x, y, false);
+      if (spot) { baby.x = spot[0]; baby.y = spot[1]; }
+    }
+    baby.lineage = lineage; baby.speciesId = parent.speciesId;
+    return baby;
+  }
+  // Generation time drives how fast evolution is VISIBLE. v6 needed ~0.5 world
+  // years to reach gen 1; this puts it at roughly a tenth of that.
+  function maturity(ph) { return 10 + ph.nodeCount * 0.5; }
+  function reproThreshold(ph) { return 0.36 * ph.storage + ph.nodeCount * 1.2; }
+  function bestSpeed(p, inWater) {
+    if (inWater) return Math.max(p.speedWater, p.canFly ? p.speedAir : 0, p.speedLand * 0.35);
+    return Math.max(p.speedLand, p.canFly ? p.speedAir : 0, p.speedWater * 0.4);
+  }
+  function resolveAttack(world, att, prey, flags) {
+    const a = att.ph, d = prey.ph;
+    let dmg = a.attack - d.defense * 0.6; if (dmg <= 0) dmg = 1;
+    prey.energy -= dmg;
+    att.energy -= d.counter * 0.5; if (att.energy < 0) att.energy = 0;
+    if (prey.energy <= 0) {
+      prey.alive = false; prey.deathCause = 'predation'; recordDeath(world, prey);
+      const gain = (d.mass * 8 + Math.max(0, prey.energy + d.mass * 2)) * 0.6;
+      att.energy = Math.min(a.storage, att.energy + Math.max(6, gain));
+      if (flags.toxins && d.toxin > 0) att.energy -= d.toxin * 22; // poison payback
+      if (att.energy < 0) att.energy = 0;
+    }
+  }
+
+  const API = {
+    makeRNG, gauss, clamp, PART, PART_TYPES, MOUTH_MODES, SINGLETON, CAPS, BRAIN_LEN, IN, HID, OUT,
+    seedHerbivore, mutate, crossover, cloneGenome, countNodes, collectNodes, develop,
+    signature, geneticDistance, speciesColor, hueToRGB, brainForward,
+    makeWorld, makeCreature, makeTerrain, maturity, reproThreshold, separate, speciesNode, pedNode, prunePhylo, prunePed,
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = API;
+  else root.GenesisCore = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* ===== GENESIS v3 — isometric pixel renderer (browser) — needs GenesisCore ===== */
+(function () {
+  'use strict';
+  const C = window.GenesisCore;
+  const $ = (id) => document.getElementById(id);
+  const clamp = (x, a, b) => x < a ? a : x > b ? b : x;
+
+  // 4x the v5 area (2x per axis). Terrain noise resolution scales with it, so
+  // this is the same map CONTINUED at identical feature size, not zoomed.
+  // 2x the island area again. TILE grows with it so the tile count (and the
+  // rasterised terrain) stays manageable while the blocks stay chunky.
+  const WORLD_W = 9000, WORLD_H = 5600, TILE = 48;
+  const TX = Math.ceil(WORLD_W / TILE), TY = Math.ceil(WORLD_H / TILE);
+  const tw = 64, th = 32;
+  // ELEV comes from the world (see makeTerrain): the simulation and the
+  // renderer must agree on what one block is, because movement is gated on it.
+  let ELEV = 40, elevH = 8;
+  const minSX = -TY * tw / 2, maxSX = TX * tw / 2;
+  const ORX = -minSX + tw / 2 + 4;
+  let ORY = ELEV * elevH + th / 2 + 4;
+  const terrW = (maxSX - minSX) + tw + 8;
+  let terrH = (TX + TY) * th / 2 + ELEV * elevH + th + 8;
+  function configureRelief() {
+    ELEV = world.terrain.ELEV;
+    // riser height chosen so a tall peak stays on screen: total relief 260-560px
+    elevH = Math.max(2, Math.min(16, Math.round(420 / Math.max(1, ELEV) * 1.25)));
+    ORY = ELEV * elevH + th / 2 + 4;
+    terrH = (TX + TY) * th / 2 + ELEV * elevH + th + 8;
+  }
+  const PIXEL = 2;
+
+  let world, selected = null, running = true, speed = 12, colorMode = 'diet';
+  let terrainMip = null, decorations = [];
+  let heightGrid = null, levelGrid = null, shadeGrid = null, biomeTile = null;
+  let seaRGB = [23, 56, 95];
+  const CHUNK = 1024;   // prerender tile size; keeps every canvas well inside limits
+  let minZoom = 0.05;
+  let cam = { x: 0, y: 0, z: 1 };
+  let buf, bufx, bw, bh;
+
+  const cv = $('world'), cx = cv.getContext('2d');
+  const ch = $('charts'), chx = ch.getContext('2d');
+
+  // ---------------------------------------------------- projection
+  function levelAt(wx, wy) {
+    if (levelGrid) {
+      const i = clamp(Math.floor(wx / TILE), 0, TX - 1), j = clamp(Math.floor(wy / TILE), 0, TY - 1);
+      return levelGrid[j * TX + i];
+    }
+    return world.terrain.level(clamp(wx, 0, WORLD_W - 1), clamp(wy, 0, WORLD_H - 1));
+  }
+  function iso(wx, wy, lvl) { const i = wx / TILE, j = wy / TILE; return [(i - j) * (tw / 2) + ORX, (i + j) * (th / 2) - lvl * elevH + ORY]; }
+
+  // ---------------------------------------------------- colors
+  // One palette entry per biome: the map should read as distinct regions
+  // (kelp sea, dune coast, marsh, prairie, deep wood, taiga, dry savanna,
+  // scree, alpine snow), not as one continuous elevation ramp.
+  const ABYSS = [9, 24, 48], SEA = [23, 56, 95];
+  const PAL = {
+    deep: [23, 56, 95], shallow: [47, 119, 158], beach: [226, 203, 140], marsh: [84, 120, 76],
+    plains: [126, 178, 84], forest: [56, 116, 52], taiga: [43, 84, 67], savanna: [186, 174, 96],
+    desert: [222, 194, 128], tundra: [143, 155, 135], rock: [138, 131, 120], scree: [171, 166, 157],
+    snow: [238, 244, 250],
+  };
+  const BNAMES = ['deep', 'shallow', 'beach', 'marsh', 'plains', 'forest', 'taiga', 'savanna', 'desert', 'tundra', 'rock', 'scree', 'snow'];
+  const BI = { deep: 0, shallow: 1, beach: 2, marsh: 3, plains: 4, forest: 5, taiga: 6, savanna: 7, desert: 8, tundra: 9, rock: 10, scree: 11, snow: 12 };
+  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  const rgb = (c) => `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
+  const dark = (c, k) => [c[0] * k, c[1] * k, c[2] * k];
+  // deterministic per-tile hash -> blocky patch variation, no per-frame cost
+  function tileJitter(i, j) {
+    let n = (i * 73856093) ^ (j * 19349663);
+    n = (n ^ (n >>> 13)) >>> 0;
+    return ((n % 1000) / 1000 - 0.5);
+  }
+  function biomeColor(h, bi, i, j) {
+    const name = BNAMES[bi] || 'plains';
+    let col;
+    if (name === 'deep') col = mix(ABYSS, SEA, clamp(h / LVR.deep, 0, 1));
+    else if (name === 'shallow') col = mix(SEA, PAL.shallow, clamp((h - LVR.deep) / (LVR.water - LVR.deep), 0, 1));
+    else col = PAL[name].slice();
+    // altitude tint on land: higher ground reads lighter and drier
+    if (bi > 2) {
+      const up = clamp((h - LVR.sand) / (1 - LVR.sand), 0, 1);
+      col = mix(col, [255, 255, 255], up * 0.16);
+    }
+    const k = 1 + tileJitter(i, j) * (bi <= 1 ? 0.06 : 0.13);
+    return [col[0] * k, col[1] * k, col[2] * k];
+  }
+  let LVR = { deep: 0.215, water: 0.300, sand: 0.355, grass: 0.660, rock: 0.845 };
+  function roleColor(ph) { return ph.carnivory > 0.55 ? 'rgb(255,107,94)' : ph.carnivory > 0.25 ? 'rgb(255,194,77)' : 'rgb(120,210,110)'; }
+  function creatureFill(c) {
+    if (colorMode === 'species') return C.speciesColor(c.speciesId);
+    if (colorMode === 'hue') { const h = isFinite(c.ph.hue) ? c.ph.hue : 0; const [r, g, b] = C.hueToRGB(h, 0.65, 0.6); return `rgb(${r},${g},${b})`; }
+    return roleColor(c.ph);
+  }
+  function lighten(str, amt) { const m = str.match(/\d+/g); if (!m) return str; return `rgb(${Math.min(255, +m[0] + amt)},${Math.min(255, +m[1] + amt)},${Math.min(255, +m[2] + amt)})`; }
+
+  // ---------------------------------------------------- terrain prerender (iso)
+  function tileDiamond(g, sx, sy, fill, topLine) {
+    g.beginPath();
+    g.moveTo(sx, sy - th / 2); g.lineTo(sx + tw / 2, sy); g.lineTo(sx, sy + th / 2); g.lineTo(sx - tw / 2, sy); g.closePath();
+    g.fillStyle = fill; g.fill();
+    if (topLine) { g.strokeStyle = topLine; g.lineWidth = 1; g.stroke(); }
+  }
+  // Height/level are sampled once per tile, not per draw: at 4x area the naive
+  // version resampled the noise field millions of times per rebuild.
+  function precomputeGrids() {
+    const t = world.terrain;
+    LVR = t.LV;
+    heightGrid = new Float32Array(TX * TY);
+    levelGrid = new Int16Array(TX * TY);
+    shadeGrid = new Float32Array(TX * TY);
+    biomeTile = new Uint8Array(TX * TY);
+    for (let j = 0; j < TY; j++) {
+      for (let i = 0; i < TX; i++) {
+        const cxw = i * TILE + TILE / 2, cyw = j * TILE + TILE / 2;
+        const hh = t.height(cxw, cyw), k = j * TX + i;
+        heightGrid[k] = hh;
+        levelGrid[k] = t.level(cxw, cyw);   // the exact array the simulation walks on
+        const hx = t.height(Math.min(WORLD_W - 1, cxw + 6), cyw) - t.height(Math.max(0, cxw - 6), cyw);
+        shadeGrid[k] = hh < t.LV.water ? 1 : clamp(1 + (-hx) * 5, 0.78, 1.25);
+        biomeTile[k] = t.biomeIdx(cxw, cyw);
+      }
+    }
+  }
+
+  // One tile of the isometric terrain, drawn into an arbitrary context.
+  function drawTile(g, i, j, sx, sy, t, L) {
+    const k = j * TX + i;
+    const h = heightGrid[k], l = levelGrid[k];
+    const lvl = (ii, jj) => levelGrid[jj * TX + ii];
+    {
+        const bi = biomeTile[k];
+        let col = biomeColor(h, bi, i, j);
+        const isWater = h < L.water;
+        // cliff side faces toward the two front neighbors
+        const lr = (i + 1 <= TX - 1) ? lvl(i + 1, j) : 0;
+        const ld = (j + 1 <= TY - 1) ? lvl(i, j + 1) : 0;
+        const sideCol = bi >= BI.rock ? dark(PAL.rock, 0.62) : isWater ? dark(SEA, 0.7)
+                      : (bi === BI.beach || bi === BI.desert) ? [163, 136, 86]
+                      : bi === BI.tundra ? [96, 96, 88] : [92, 66, 44];
+        // no skirt on open-water border tiles: the sea must look unbounded
+        const rim = isWater ? 0 : elevH;
+        const dropR = Math.max(0, l - lr) * elevH + (i === TX - 1 ? rim : 0);
+        const dropD = Math.max(0, l - ld) * elevH + (j === TY - 1 ? rim : 0);
+        if (dropR > 0) { // right face (toward +i): from top-right edge down
+          g.fillStyle = rgb(dark(sideCol, 0.9)); g.beginPath();
+          g.moveTo(sx + tw / 2, sy); g.lineTo(sx, sy + th / 2); g.lineTo(sx, sy + th / 2 + dropR); g.lineTo(sx + tw / 2, sy + dropR); g.closePath(); g.fill();
+        }
+        if (dropD > 0) { // left face (toward +j)
+          g.fillStyle = rgb(dark(sideCol, 0.7)); g.beginPath();
+          g.moveTo(sx - tw / 2, sy); g.lineTo(sx, sy + th / 2); g.lineTo(sx, sy + th / 2 + dropD); g.lineTo(sx - tw / 2, sy + dropD); g.closePath(); g.fill();
+        }
+        // top diamond with slope shading + dither
+        const shade = shadeGrid[k];
+        tileDiamond(g, sx, sy, rgb(dark(col, shade)), 'rgba(0,0,0,0.10)');
+        // dither speckles for texture (biome-tinted: scree stipples, snow sparkles)
+        if (!isWater) {
+          const bi2 = biomeTile[k];
+          g.fillStyle = (bi2 === BI.rock || bi2 === BI.scree) ? 'rgba(0,0,0,0.10)'
+                      : bi2 === BI.snow ? 'rgba(255,255,255,0.35)'
+                      : (bi2 === BI.desert || bi2 === BI.beach) ? 'rgba(180,140,80,0.22)'
+                      : 'rgba(255,255,255,0.06)';
+          for (let d = 0; d < 3; d++) { const rx = (((i * 7 + j * 13 + d * 5) % 9) - 4) * 3, ry = (((i * 5 + j * 11 + d * 3) % 5) - 2) * 3; g.fillRect(sx + rx, sy + ry, 2, 2); }
+        } else if (h >= L.deep) { g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(sx - 6, sy - 2, 8, 2); }
+    }
+  }
+
+  // ---------------------------------------------------- terrain raster
+  // The 2x world rasterises to ~50 megapixels of isometric terrain. Building
+  // that eagerly costs seconds of startup and >100MB of canvas, so instead:
+  //   - a low-res MIP of the whole island is built once (cheap, always resident)
+  //   - full-detail CHUNKS are rasterised lazily, only when actually looked at,
+  //     a couple per frame, behind an LRU cap.
+  // The mip doubles as the base layer, so a chunk that is not ready yet shows
+  // as slightly soft rather than as a hole.
+  let sxA = null, syA = null, chunkIndex = [], mipScale = 0.22, fN = 0;
+  const MAX_CHUNKS = 18;
+
+  function rasterize(g, ox, oy, cw, chh, scale) {
+    const t = world.terrain, L = t.LV;
+    g.setTransform(scale, 0, 0, scale, -ox * scale, -oy * scale);
+    const maxDrop = ELEV * elevH + elevH;
+    const pad = 18 / scale;
+    let dp = 0;
+    const emitDeco = (upto) => {
+      while (dp < decorations.length && decorations[dp].s <= upto) {
+        const d = decorations[dp++];
+        if (d.sx + pad < ox || d.sx - pad > ox + cw) continue;
+        if (d.sy + 10 < oy || d.sy - 40 > oy + chh) continue;
+        drawDeco(g, d);
+      }
+    };
+    for (let s = 0; s <= (TX - 1) + (TY - 1); s++) {
+      emitDeco(s - 1);
+      for (let i = Math.max(0, s - (TY - 1)); i <= Math.min(TX - 1, s); i++) {
+        const j = s - i, k = j * TX + i;
+        const sx = sxA[k], sy = syA[k];
+        if (sx + tw / 2 < ox || sx - tw / 2 > ox + cw) continue;
+        if (sy + th / 2 + maxDrop < oy || sy - th / 2 > oy + chh) continue;
+        drawTile(g, i, j, sx, sy, t, L);
+      }
+    }
+    emitDeco(Infinity);
+  }
+
+  function ensureChunk(k) {
+    if (k.cvs) return true;
+    try {
+      const oc = document.createElement('canvas');
+      oc.width = k.w; oc.height = k.h;
+      const g = oc.getContext('2d');
+      if (!g) return false;
+      rasterize(g, k.ox, k.oy, k.w, k.h, 1);
+      k.cvs = oc;
+      return true;
+    } catch (e) { k.cvs = null; return false; }
+  }
+
+  function evictChunks(now) {
+    const live = chunkIndex.filter(k => k.cvs);
+    if (live.length <= MAX_CHUNKS) return;
+    live.sort((a, b) => a.used - b.used);
+    for (let i = 0; i < live.length - MAX_CHUNKS; i++) { live[i].cvs = null; live[i].used = 0; }
+  }
+
+  function buildTerrain() {
+    configureRelief();
+    precomputeGrids();
+    chunkIndex = []; terrainMip = null;
+    // tile screen positions, computed once
+    sxA = new Float32Array(TX * TY); syA = new Float32Array(TX * TY);
+    for (let j = 0; j < TY; j++) for (let i = 0; i < TX; i++) {
+      const k = j * TX + i;
+      const pos = iso(i * TILE + TILE / 2, j * TILE + TILE / 2, levelGrid[k]);
+      sxA[k] = pos[0]; syA[k] = pos[1];
+    }
+    buildDecorations();                    // needs levelGrid; baked into the raster
+
+    // chunk metadata only: nothing is rasterised until it is looked at
+    const cols = Math.ceil(terrW / CHUNK), rows = Math.ceil(terrH / CHUNK);
+    const maxDrop = ELEV * elevH + elevH;
+    for (let ry = 0; ry < rows; ry++) for (let rx = 0; rx < cols; rx++) {
+      const ox = rx * CHUNK, oy = ry * CHUNK;
+      const cw = Math.min(CHUNK, terrW - ox), chh = Math.min(CHUNK, terrH - oy);
+      if (cw <= 0 || chh <= 0) continue;
+      let any = false;
+      for (let k = 0; k < TX * TY && !any; k++) {
+        const sx = sxA[k], sy = syA[k];
+        if (sx + tw / 2 < ox || sx - tw / 2 > ox + cw) continue;
+        if (sy + th / 2 + maxDrop < oy || sy - th / 2 > oy + chh) continue;
+        any = true;
+      }
+      if (any) chunkIndex.push({ ox, oy, w: cw, h: chh, cvs: null, used: 0 });
+    }
+
+    // whole-island overview, sized to stay well inside canvas limits
+    try {
+      mipScale = Math.min(0.30, Math.sqrt(3.2e6 / Math.max(1, terrW * terrH)));
+      const mc = document.createElement('canvas');
+      mc.width = Math.max(1, Math.ceil(terrW * mipScale));
+      mc.height = Math.max(1, Math.ceil(terrH * mipScale));
+      const mg = mc.getContext('2d');
+      rasterize(mg, 0, 0, terrW, terrH, mipScale);
+      terrainMip = mc;
+    } catch (e) { terrainMip = null; }
+
+    // the open sea beyond the island uses the exact colour of a border tile, so
+    // the world edge is invisible and the ocean reads as unbounded
+    seaRGB = biomeColor(0.10, 0, 0, 0);
+  }
+
+  const DECO = {
+    deep:     [0.30, ['kelp', 'kelp', 'rock']],
+    shallow:  [0.22, ['reed', 'reed', 'rock']],
+    beach:    [0.20, ['rock', 'driftwood', 'tuft']],
+    marsh:    [0.75, ['reed', 'reed', 'bush', 'tuft']],
+    plains:   [0.55, ['tuft', 'tuft', 'flower', 'bush', 'tree']],
+    forest:   [0.98, ['tree', 'tree', 'tree', 'tree', 'bush', 'flower', 'pine']],
+    taiga:    [0.92, ['pine', 'pine', 'pine', 'pine', 'rock', 'bush']],
+    savanna:  [0.55, ['dryshrub', 'dryshrub', 'tuft', 'tree', 'rock']],
+    desert:   [0.30, ['cactus', 'cactus', 'rock', 'dryshrub']],
+    tundra:   [0.35, ['rock', 'dryshrub', 'tuft']],
+    rock:     [0.45, ['rock', 'rock', 'pine']],
+    scree:    [0.55, ['boulder', 'boulder', 'rock']],
+    snow:     [0.40, ['snowpine', 'rock', 'rock']],
+  };
+  function buildDecorations() {
+    decorations = [];
+    const t = world.terrain;
+    const rng = C.makeRNG(((world.seed ^ 0x9E3779B9) * 7919 + 13) >>> 0);
+    const N = Math.round(7000 * ((WORLD_W * WORLD_H) / (3200 * 2000)));
+    for (let k = 0; k < N; k++) {
+      const wx = rng() * WORLD_W, wy = rng() * WORLD_H;
+      const spec = DECO[t.biomeAt(wx, wy)];
+      if (!spec || rng() > spec[0]) continue;
+      const list = spec[1];
+      const pos = iso(wx, wy, levelAt(wx, wy));
+      const type = list[(rng() * list.length) | 0];
+      // per-instance size. Canopies and cacti vary the most, ground cover least,
+      // so a forest reads as mixed-age rather than as one stamped sprite.
+      const RANGE = { tree: [0.60, 1.30], pine: [0.60, 1.25], snowpine: [0.60, 1.15],
+                      cactus: [0.55, 1.35], boulder: [0.65, 0.85], rock: [0.70, 0.70],
+                      bush: [0.70, 0.60], dryshrub: [0.70, 0.60], kelp: [0.70, 0.80],
+                      reed: [0.75, 0.55], tuft: [0.75, 0.55], flower: [0.80, 0.45], driftwood: [0.75, 0.60] };
+      const rg = RANGE[type] || [0.8, 0.4];
+      const sz = rg[0] + Math.pow(rng(), 0.8) * rg[1];
+      decorations.push({ wx, wy, sx: pos[0], sy: pos[1], s: (wx + wy) / TILE, type, sz, v: rng(), hue: rng() });
+    }
+    // painter's order key, so vegetation interleaves correctly with the tiles
+    decorations.sort((a, b) => a.s - b.s);
+  }
+
+  // ---------------------------------------------------- decoration drawing
+  function drawDeco(g, d) {
+    const sx = d.sx, sy = d.sy, sz = d.sz || 1;
+    // scale about the ground contact point, so sprites stay planted
+    g.save(); g.translate(sx, sy); g.scale(sz, sz); g.translate(-sx, -sy);
+    g.fillStyle = 'rgba(0,0,0,0.18)';
+    g.beginPath(); g.ellipse(sx, sy, 7, 3.5, 0, 0, 7); g.fill();
+    if (d.type === 'tree') {
+      g.fillStyle = '#5b3d24'; g.fillRect(sx - 1.5, sy - 12, 3, 12);
+      for (let i = 0; i < 3; i++) { const r = 11 - i * 2.5; g.fillStyle = i === 0 ? '#2f6b34' : i === 1 ? '#3a7d3f' : '#4a9450'; g.beginPath(); g.arc(sx, sy - 12 - i * 6, r, 0, 7); g.fill(); }
+    } else if (d.type === 'pine') {
+      g.fillStyle = '#5b3d24'; g.fillRect(sx - 1, sy - 8, 2, 8);
+      for (let i = 0; i < 3; i++) { const w = 11 - i * 3, yy = sy - 6 - i * 7; g.fillStyle = i === 0 ? '#2c5e36' : '#367042'; g.beginPath(); g.moveTo(sx, yy - 9); g.lineTo(sx + w, yy + 2); g.lineTo(sx - w, yy + 2); g.closePath(); g.fill(); }
+    } else if (d.type === 'bush') {
+      g.fillStyle = '#3a7d3f'; for (const o of [[-4, 0], [4, 0], [0, -3]]) { g.beginPath(); g.arc(sx + o[0], sy - 3 + o[1], 5, 0, 7); g.fill(); }
+    } else if (d.type === 'rock') {
+      g.fillStyle = d.v > 0.5 ? '#8a8079' : '#6f6660'; g.beginPath(); g.moveTo(sx - 7, sy); g.lineTo(sx - 3, sy - 7); g.lineTo(sx + 4, sy - 6); g.lineTo(sx + 7, sy); g.closePath(); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.15)'; g.fillRect(sx - 2, sy - 5, 3, 2);
+    } else if (d.type === 'flower') {
+      const [fr, fg, fb] = C.hueToRGB(d.hue, 0.8, 0.65);
+      g.fillStyle = `rgb(${fr},${fg},${fb})`; for (const o of [[-3, 0], [3, 0], [0, -3], [0, 0]]) { g.beginPath(); g.arc(sx + o[0], sy - 2 + o[1], 1.8, 0, 7); g.fill(); }
+    } else if (d.type === 'reed') {
+      g.strokeStyle = '#6fae5a'; g.lineWidth = 1.4; for (let i = -2; i <= 2; i += 2) { g.beginPath(); g.moveTo(sx + i, sy); g.lineTo(sx + i + d.v * 2, sy - 9); g.stroke(); }
+    } else if (d.type === 'kelp') {
+      g.strokeStyle = 'rgba(38,120,104,0.85)'; g.lineWidth = 2;
+      for (let i = -1; i <= 1; i++) { g.beginPath(); g.moveTo(sx + i * 3, sy); g.quadraticCurveTo(sx + i * 3 + (d.v - 0.5) * 8, sy - 8, sx + i * 3 + (d.v - 0.5) * 5, sy - 15); g.stroke(); }
+    } else if (d.type === 'tuft') {
+      g.strokeStyle = d.v > 0.5 ? '#6aa346' : '#7fb954'; g.lineWidth = 1.2;
+      for (let i = -2; i <= 2; i += 2) { g.beginPath(); g.moveTo(sx + i, sy); g.lineTo(sx + i * 1.6, sy - 5 - d.v * 2); g.stroke(); }
+    } else if (d.type === 'dryshrub') {
+      g.strokeStyle = '#9c8f4e'; g.lineWidth = 1.3;
+      for (const a of [-0.9, -0.2, 0.5]) { g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + Math.sin(a + d.v) * 6, sy - 7); g.stroke(); }
+      g.fillStyle = '#b3a75e'; g.beginPath(); g.arc(sx, sy - 7, 3, 0, 7); g.fill();
+    } else if (d.type === 'boulder') {
+      g.fillStyle = d.v > 0.5 ? '#9d968c' : '#867f76';
+      g.beginPath(); g.moveTo(sx - 11, sy + 1); g.lineTo(sx - 6, sy - 10); g.lineTo(sx + 5, sy - 11); g.lineTo(sx + 11, sy - 1); g.closePath(); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.18)'; g.fillRect(sx - 4, sy - 8, 5, 3);
+      g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(sx + 2, sy - 4, 6, 3);
+    } else if (d.type === 'snowpine') {
+      g.fillStyle = '#4a3a2c'; g.fillRect(sx - 1, sy - 7, 2, 7);
+      for (let i = 0; i < 3; i++) { const ww = 10 - i * 3, yy = sy - 5 - i * 6; g.fillStyle = i === 0 ? '#244a38' : '#2e5a44'; g.beginPath(); g.moveTo(sx, yy - 8); g.lineTo(sx + ww, yy + 2); g.lineTo(sx - ww, yy + 2); g.closePath(); g.fill(); g.fillStyle = 'rgba(238,244,250,0.85)'; g.fillRect(sx - ww * 0.6, yy + 0.5, ww * 1.2, 1.6); }
+    } else if (d.type === 'driftwood') {
+      g.strokeStyle = '#a8926f'; g.lineWidth = 2.4; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(sx - 7, sy - 1); g.lineTo(sx + 7, sy - 3 - d.v * 2); g.stroke();
+    } else if (d.type === 'cactus') {
+      g.fillStyle = '#3f7a48'; g.fillRect(sx - 2, sy - 16, 4, 16);
+      if (d.v > 0.4) { g.fillRect(sx - 7, sy - 12, 3, 6); g.fillRect(sx - 7, sy - 13, 5, 3); }
+      if (d.v < 0.7) { g.fillRect(sx + 4, sy - 14, 3, 7); g.fillRect(sx + 2, sy - 15, 5, 3); }
+      g.fillStyle = 'rgba(255,255,255,0.14)'; g.fillRect(sx - 2, sy - 16, 1.5, 16);
+    }
+    g.restore();
+  }
+
+  // ---------------------------------------------------- critter drawing
+  function tally(ph) { const c = {}; for (const p of ph.parts) c[p.type] = (c[p.type] || 0) + 1; return c; }
+  function drawCritter(c, lod) {
+    const ph = c.ph, T = world.t;
+    const [sx, sy] = iso(c.x, c.y, levelAt(c.x, c.y));
+    c._sx = sx; c._sy = sy;
+    const fill = creatureFill(c);
+    const R = ph.radius;
+    // body-plan geometry: elongation is area-preserving, so a snake is long and
+    // thin rather than simply bigger, and leg length actually lifts the body
+    const BX = ph.bodyRX || R, BY = ph.bodyRY || R, NK = ph.neck || 0, LL = ph.legLen || 1;
+    const stand = ph.standH || R * 0.95;
+
+    // three-state latched facing: left / toward viewer / right. Re-evaluated a
+    // few times a second with a deadband, so a near-stationary creature can no
+    // longer strobe between mirrored poses every frame.
+    if (c._face === undefined) { c._face = 0; c._faceT = -9; }
+    if (T - c._faceT > 0.5) {
+      c._faceT = T;
+      const spd = Math.hypot(c.vx, c.vy), ax = Math.abs(c.vx);
+      if (spd < 5 || ax < spd * 0.42) c._face = 0;
+      else c._face = c.vx > 0 ? 1 : -1;
+    }
+    const facing = c._face;
+    const dirS = facing === 0 ? 0 : 1;          // 0 => front-on, features centred
+
+    bufx.save(); bufx.translate(sx, sy);
+    // contact shadow, squashed to the isometric ground plane
+    bufx.fillStyle = 'rgba(0,0,0,0.26)';
+    bufx.beginPath(); bufx.ellipse(0, 0, BX * 0.95, BX * 0.475, 0, 0, 7); bufx.fill();
+    if (facing === -1) bufx.scale(-1, 1);
+    const bodyY = -stand;
+
+    // head anchor: at the top of the neck when there is one, otherwise merged
+    // into the front of the body
+    const headR = clamp(R * (NK > 0.15 ? 0.44 : 0.55), 1.6, R);
+    const headX = (NK > 0.15 ? BX * 0.55 + NK * BX * 0.30 : BX * 0.45) * dirS;
+    const headY = bodyY - BY * 0.35 - NK * R * 1.05;
+
+    if (lod === 0) { // far: shaped silhouette (never a generic circle)
+      bufx.fillStyle = fill; bufx.beginPath(); bufx.ellipse(0, bodyY, BX * 0.95, BY * 0.85, 0, 0, 7); bufx.fill();
+      if (NK > 0.4) { bufx.strokeStyle = fill; bufx.lineWidth = Math.max(1, R * 0.3); bufx.beginPath(); bufx.moveTo(BX * 0.4 * dirS, bodyY); bufx.lineTo(headX, headY); bufx.stroke(); }
+      bufx.restore(); selRing(c); return;
+    }
+    const counts = tally(ph);
+    const phase = T * (5 + Math.hypot(c.vx, c.vy) * 0.1) + c.id;
+    const aqua = ph.aquaticForm;
+
+    // wings (behind) -- an aquatic body plan cannot have them: the same tissue
+    // budget developed as fin surface instead, so they render as fins below
+    const wings = aqua ? 0 : (counts.WING || 0);
+    for (let i = 0; i < wings; i++) {
+      const flap = Math.sin(phase * 1.5 + i) * 0.5;
+      bufx.save(); bufx.translate(-BX * 0.3, bodyY); bufx.rotate(-0.4 + flap);
+      const grd = bufx.createLinearGradient(0, 0, -BX * 1.6, 0);
+      grd.addColorStop(0, 'rgba(200,235,255,0.7)'); grd.addColorStop(1, 'rgba(160,210,240,0.2)');
+      bufx.fillStyle = grd; bufx.beginPath(); bufx.ellipse(-BX * 0.8, -R * 0.2, BX * 0.9, R * 0.5, 0, 0, 7); bufx.fill(); bufx.restore();
+    }
+    // tail (behind)
+    if (counts.TAIL) {
+      const sw = Math.sin(phase) * 0.3;
+      bufx.strokeStyle = fill; bufx.lineWidth = Math.max(1, BY * 0.5); bufx.lineCap = 'round';
+      bufx.beginPath(); bufx.moveTo(-BX * 0.6, bodyY + BY * 0.2);
+      bufx.quadraticCurveTo(-BX * 1.3, bodyY + sw * R, -BX * 1.7, bodyY - BY * 0.3 + sw * R); bufx.stroke();
+    }
+    // legs: length follows legLen, and they actually reach the ground
+    const legs = clamp(counts.LEG || 0, 0, 6);
+    for (let i = 0; i < legs; i++) {
+      const t = legs === 1 ? 0 : (i / (legs - 1) - 0.5);
+      const lx = t * BX * 1.25, step = Math.sin(phase + i * 1.5) * (1 + LL);
+      bufx.strokeStyle = '#9c7240'; bufx.lineWidth = Math.max(1.2, R * 0.13 / Math.max(0.6, LL * 0.8)); bufx.lineCap = 'round';
+      bufx.beginPath(); bufx.moveTo(lx, bodyY + BY * 0.55); bufx.lineTo(lx + step, 0); bufx.stroke();
+    }
+    // fins: aquatic plans also express their wing parts here
+    const fins = (counts.FIN || 0) + (aqua ? (counts.WING || 0) : 0);
+    for (let i = 0; i < fins; i++) {
+      const wob = Math.sin(phase * 1.3 + i) * 0.3;
+      const scaleF = 0.6 + 0.5 * ((i % 3) / 2);          // visibly different sizes
+      bufx.fillStyle = 'rgba(82,185,255,0.55)';
+      bufx.save(); bufx.translate(BX * 0.15 + i * BX * 0.12, bodyY + BY * 0.15 + (i % 2) * 3 - 2); bufx.rotate(0.4 + wob);
+      bufx.beginPath(); bufx.moveTo(0, 0);
+      bufx.lineTo(BX * 0.85 * scaleF, -BY * 0.5 * scaleF); bufx.lineTo(BX * 0.85 * scaleF, BY * 0.45 * scaleF);
+      bufx.closePath(); bufx.fill(); bufx.restore();
+    }
+    // dorsal fin for streamlined swimmers
+    if (aqua && ph.elong > 1.4) {
+      bufx.fillStyle = 'rgba(70,160,225,0.75)';
+      bufx.beginPath(); bufx.moveTo(-BX * 0.1, bodyY - BY * 0.8); bufx.lineTo(BX * 0.25, bodyY - BY * 1.5 - R * 0.2);
+      bufx.lineTo(BX * 0.45, bodyY - BY * 0.8); bufx.closePath(); bufx.fill();
+    }
+
+    // neck
+    if (NK > 0.15) {
+      bufx.strokeStyle = fill; bufx.lineWidth = Math.max(1.4, BY * 0.42);
+      bufx.lineCap = 'round';
+      bufx.beginPath(); bufx.moveTo(BX * 0.35 * dirS, bodyY - BY * 0.25);
+      bufx.quadraticCurveTo((headX + BX * 0.3 * dirS) * 0.5, (bodyY + headY) * 0.5 - R * 0.15, headX, headY);
+      bufx.stroke();
+    }
+    // body
+    const grd = bufx.createRadialGradient(-BX * 0.3, bodyY - BY * 0.3, BX * 0.2, 0, bodyY, BX * 1.1);
+    grd.addColorStop(0, lighten(fill, 30)); grd.addColorStop(1, fill);
+    bufx.fillStyle = grd; bufx.beginPath(); bufx.ellipse(0, bodyY, BX * 0.98, BY * 0.9, 0, 0, 7); bufx.fill();
+    bufx.strokeStyle = 'rgba(0,0,0,0.4)'; bufx.lineWidth = 1; bufx.stroke();
+    // head
+    if (NK > 0.15) {
+      bufx.fillStyle = lighten(fill, 12);
+      bufx.beginPath(); bufx.ellipse(headX, headY, headR * 1.05, headR * 0.9, 0, 0, 7); bufx.fill();
+      bufx.strokeStyle = 'rgba(0,0,0,0.35)'; bufx.lineWidth = 1; bufx.stroke();
+    }
+    // energy core
+    const ef = clamp(c.energy / ph.storage, 0.08, 1), pulse = 0.5 + 0.25 * Math.sin(T * 4 + c.id);
+    const cg = bufx.createRadialGradient(0, bodyY, 0, 0, bodyY, BX * 0.7);
+    cg.addColorStop(0, `rgba(190,255,250,${pulse})`); cg.addColorStop(1, 'rgba(120,230,210,0)');
+    bufx.fillStyle = cg; bufx.beginPath(); bufx.ellipse(0, bodyY, BX * 0.65 * (0.5 + ef * 0.6), BY * 0.65 * (0.5 + ef * 0.6), 0, 0, 7); bufx.fill();
+
+    if (lod < 2) { // medium: one eye, skip fine appendages
+      const ex = facing === 0 ? headX : headX + headR * 0.15;
+      bufx.fillStyle = '#f6f9f9'; bufx.beginPath(); bufx.arc(ex, headY - headR * 0.15, Math.max(1.5, headR * 0.34), 0, 7); bufx.fill();
+      bufx.fillStyle = '#06100f'; bufx.beginPath(); bufx.arc(ex + (facing === 0 ? 0 : headR * 0.08), headY - headR * 0.15, Math.max(0.8, headR * 0.16), 0, 7); bufx.fill();
+      bufx.restore(); selRing(c); return;
+    }
+    // spikes (along the back)
+    const spikes = clamp(counts.SPIKE || 0, 0, 8);
+    bufx.fillStyle = '#ece0c6';
+    for (let i = 0; i < spikes; i++) {
+      const t = spikes === 1 ? 0 : i / (spikes - 1); const ax = (t - 0.5) * BX * 1.5, ay = bodyY - BY * 0.72;
+      bufx.beginPath(); bufx.moveTo(ax - 2, ay + 3); bufx.lineTo(ax + 2, ay + 3); bufx.lineTo(ax, ay - R * 0.5 - 2); bufx.closePath(); bufx.fill();
+    }
+    // horns (on the head)
+    const horns = clamp(counts.HORN || 0, 0, 2);
+    bufx.strokeStyle = '#d8c89a'; bufx.lineWidth = Math.max(1.4, headR * 0.3); bufx.lineCap = 'round';
+    for (let i = 0; i < horns; i++) {
+      const hx = headX + (facing === 0 ? (i ? -headR * 0.45 : headR * 0.45) : headR * (0.2 + i * 0.5));
+      bufx.beginPath(); bufx.moveTo(hx, headY - headR * 0.5);
+      bufx.quadraticCurveTo(hx + headR * 0.35 * (facing === 0 ? (i ? -1 : 1) : 1), headY - headR * 1.5, hx + headR * 0.7 * (facing === 0 ? (i ? -1 : 1) : 1), headY - headR * 1.2);
+      bufx.stroke();
+    }
+    // eyes (on the head; two of them when facing the viewer)
+    const eyes = clamp(counts.EYE || 0, 0, 4);
+    const eyeR = clamp(headR * (0.30 + (ph.sEye || 0) * 0.10 / Math.max(1, eyes)), 1.4, headR * 0.55);
+    for (let i = 0; i < eyes; i++) {
+      const ex = facing === 0 ? (i % 2 ? -headR * 0.42 : headR * 0.42) + headX
+                              : headX + headR * 0.2 - (i >= 2 ? eyeR * 1.2 : 0);
+      const ey = headY - headR * 0.2 - (facing === 0 ? 0 : (i % 2) * eyeR * 1.4);
+      bufx.fillStyle = '#f6f9f9'; bufx.beginPath(); bufx.arc(ex, ey, eyeR, 0, 7); bufx.fill();
+      const [ir, ig, ib] = C.hueToRGB(isFinite(ph.hue) ? ph.hue : 0, 0.8, 0.4);
+      bufx.fillStyle = `rgb(${ir},${ig},${ib})`; bufx.beginPath(); bufx.arc(ex + eyeR * 0.15, ey, eyeR * 0.6, 0, 7); bufx.fill();
+      bufx.fillStyle = '#06100f'; bufx.beginPath(); bufx.arc(ex + eyeR * 0.2, ey, eyeR * 0.3, 0, 7); bufx.fill();
+      bufx.fillStyle = 'rgba(255,255,255,0.9)'; bufx.beginPath(); bufx.arc(ex - eyeR * 0.2, ey - eyeR * 0.25, eyeR * 0.18, 0, 7); bufx.fill();
+    }
+    // mouth: carnivore maw vs herbivore beak, on the head
+    if (counts.MOUTH) {
+      const my = headY + headR * 0.5, mx = facing === 0 ? headX : headX + headR * 0.35;
+      if (ph.sMouthCarn > 0) {
+        const open = (0.4 + 0.3 * Math.abs(Math.sin(T * 4 + c.id))) * headR * 0.6;
+        bufx.fillStyle = '#7a1010'; bufx.beginPath(); bufx.ellipse(mx, my, headR * 0.5, open, 0, 0, 7); bufx.fill();
+        bufx.fillStyle = '#fff';
+        for (let k = -2; k <= 2; k++) { bufx.beginPath(); bufx.moveTo(mx + k * headR * 0.2, my - open * 0.6); bufx.lineTo(mx + k * headR * 0.2 + 2, my); bufx.lineTo(mx + k * headR * 0.2 - 2, my); bufx.closePath(); bufx.fill(); }
+      } else {
+        bufx.strokeStyle = '#caa46a'; bufx.lineWidth = 2;
+        bufx.beginPath(); bufx.moveTo(mx - headR * 0.3, my); bufx.lineTo(mx + headR * 0.35, my); bufx.stroke();
+      }
+    }
+    // glands (glowing toxin sacs)
+    const glands = counts.GLAND || 0;
+    for (let i = 0; i < glands; i++) {
+      const gp = 0.4 + 0.4 * Math.sin(T * 3 + c.id + i);
+      const [gr, gg, gb] = C.hueToRGB((ph.hue + 0.3) % 1, 0.9, 0.5);
+      const gx = (i / Math.max(1, glands) - 0.4) * BX, gy = bodyY + BY * 0.2;
+      const gg2 = bufx.createRadialGradient(gx, gy, 0, gx, gy, R * 0.4);
+      gg2.addColorStop(0, `rgba(${gr},${gg},${gb},${gp})`); gg2.addColorStop(1, `rgba(${gr},${gg},${gb},0)`);
+      bufx.fillStyle = gg2; bufx.beginPath(); bufx.arc(gx, gy, R * 0.4, 0, 7); bufx.fill();
+    }
+
+    bufx.restore(); selRing(c);
+  }
+  function selRing(c) {
+    if (c !== selected) return;
+    const [sx, sy] = iso(c.x, c.y, levelAt(c.x, c.y));
+    bufx.strokeStyle = '#35e0d8'; bufx.lineWidth = 1.5; bufx.beginPath(); bufx.ellipse(sx, sy, c.ph.radius + 6, (c.ph.radius + 6) * 0.5, 0, 0, 7); bufx.stroke();
+  }
+
+  // ---------------------------------------------------- frame
+  function resizeBuffers() {
+    const r = cv.parentElement.getBoundingClientRect();
+    cv.width = r.width; cv.height = r.height; cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px';
+    bw = Math.ceil(r.width / PIXEL); bh = Math.ceil(r.height / PIXEL);
+    if (!buf) { buf = document.createElement('canvas'); bufx = buf.getContext('2d'); }
+    buf.width = bw; buf.height = bh;
+    cx.imageSmoothingEnabled = false;
+  }
+  function fitCamera() {
+    cam.z = Math.min(bw / terrW, bh / terrH) * 0.95;
+    if (!isFinite(cam.z) || cam.z <= 0) cam.z = 0.1;
+    minZoom = cam.z * 0.9;                       // never clamp above the fitted view
+    cam.x = bw / 2 - terrW * cam.z / 2; cam.y = bh / 2 - terrH * cam.z / 2;
+  }
+
+  function render() {
+    const lt = world.light;
+    // The world sits in open ocean: the backdrop is the exact colour of a border
+    // sea tile, so the map has no visible edge. Day/night is applied globally
+    // afterwards, matching the pre-rendered terrain.
+    bufx.setTransform(1, 0, 0, 1, 0, 0); bufx.fillStyle = rgb(seaRGB); bufx.fillRect(0, 0, bw, bh);
+    bufx.setTransform(cam.z, 0, 0, cam.z, cam.x, cam.y);
+    bufx.imageSmoothingEnabled = false;
+    // visible rectangle in terrain-canvas space -> everything below is culled
+    const vx0 = (-cam.x) / cam.z, vy0 = (-cam.y) / cam.z;
+    const vx1 = (bw - cam.x) / cam.z, vy1 = (bh - cam.y) / cam.z;
+    const vis = (sx, sy, pad) => sx > vx0 - pad && sx < vx1 + pad && sy > vy0 - pad - 90 && sy < vy1 + pad;
+    // open-sea swell: anchored in world space (so panning reads as motion over
+    // water) and drawn UNDER the island, which occludes it on land
+    {
+      const st = 120;
+      bufx.fillStyle = 'rgba(255,255,255,0.05)';
+      const x0 = Math.floor(vx0 / st) * st, y0 = Math.floor(vy0 / st) * st;
+      for (let yy = y0; yy < vy1 + st; yy += st) {
+        for (let xx = x0; xx < vx1 + st; xx += st) {
+          const n = (((xx * 73856093) ^ (yy * 19349663)) >>> 0);
+          bufx.fillRect(xx + (n % 71), yy + ((n >>> 7) % 53), 9, 2);
+        }
+      }
+    }
+    // Base layer: the always-resident overview. At low zoom it IS the picture;
+    // at high zoom it is the stand-in under any chunk not rasterised yet, so a
+    // pan never shows a hole.
+    if (terrainMip) {
+      bufx.save(); bufx.scale(1 / mipScale, 1 / mipScale); bufx.drawImage(terrainMip, 0, 0); bufx.restore();
+    }
+    if (cam.z >= 0.30) {
+      let budget = 2;                     // rasterise at most 2 chunks per frame
+      for (const k of chunkIndex) {
+        if (k.ox > vx1 || k.ox + k.w < vx0 || k.oy > vy1 || k.oy + k.h < vy0) continue;
+        if (!k.cvs && budget > 0 && ensureChunk(k)) budget--;
+        if (k.cvs) { k.used = fN; bufx.drawImage(k.cvs, k.ox, k.oy); }
+      }
+      evictChunks();
+    }
+    // ground decals
+    for (const hz of world.hazards) { const [sx, sy] = iso(hz.x, hz.y, levelAt(hz.x, hz.y)); if (!vis(sx, sy, hz.r)) continue; const a = Math.min(0.3, hz.decay / 30); const g = bufx.createRadialGradient(sx, sy, 0, sx, sy, hz.r * 0.6); g.addColorStop(0, `rgba(160,90,200,${a})`); g.addColorStop(1, 'rgba(160,90,200,0)'); bufx.fillStyle = g; bufx.beginPath(); bufx.ellipse(sx, sy, hz.r * 0.6, hz.r * 0.3, 0, 0, 7); bufx.fill(); }
+    if (cam.z > 0.14) {   // below this a plant is well under one screen pixel
+      for (const p of world.plants) { const [sx, sy] = iso(p.x, p.y, levelAt(p.x, p.y)); if (!vis(sx, sy, 8)) continue; bufx.fillStyle = p.deep ? '#1f8f7d' : p.water ? '#3fb98a' : '#76d96a'; bufx.fillRect(sx - 1, sy - 2, 2, 3); }
+    }
+    for (const cz of world.carrion) { const [sx, sy] = iso(cz.x, cz.y, levelAt(cz.x, cz.y)); if (!vis(sx, sy, 8)) continue; bufx.fillStyle = 'rgba(122,92,67,' + Math.min(1, cz.decay / 10) + ')'; bufx.beginPath(); bufx.arc(sx, sy, 2.5, 0, 7); bufx.fill(); }
+    // Vegetation is baked into the terrain raster, so the only depth-sorted
+    // per-frame geometry is the creatures themselves.
+    const list = [];
+    for (const c of world.creatures) { c._sx = null; const [sx, sy] = iso(c.x, c.y, levelAt(c.x, c.y)); if (!vis(sx, sy, c.ph.radius + 20)) continue; list.push({ d: c.x + c.y, cr: c }); }
+    list.sort((a, b) => a.d - b.d);
+    for (const it of list) {
+      const cr = it.cr, sr = cr.ph.radius * cam.z;
+      drawCritter(cr, sr > 9 ? 2 : sr > 3.5 ? 1 : 0);
+      // divers below the drop-off are seen through water
+      if (cr._sx != null && world.terrain.isDeep(cr.x, cr.y)) {
+        const R = cr.ph.radius;
+        bufx.fillStyle = 'rgba(30,95,150,0.42)';
+        bufx.beginPath(); bufx.ellipse(cr._sx, cr._sy - R * 0.9, R * 1.25, R * 1.1, 0, 0, 7); bufx.fill();
+        bufx.strokeStyle = 'rgba(190,235,255,0.30)'; bufx.lineWidth = 1;
+        bufx.beginPath(); bufx.ellipse(cr._sx, cr._sy, R * 1.1, R * 0.55, 0, 0, 7); bufx.stroke();
+      }
+    }
+    // night overlay
+    if (world.flags.dayNight) { bufx.setTransform(1, 0, 0, 1, 0, 0); bufx.fillStyle = `rgba(8,14,38,${(1 - lt) * 0.5})`; bufx.fillRect(0, 0, bw, bh); }
+    if (world.extinct) { bufx.setTransform(1, 0, 0, 1, 0, 0); bufx.fillStyle = 'rgba(0,0,0,0.5)'; bufx.fillRect(0, 0, bw, bh); bufx.fillStyle = '#ff6b5e'; bufx.font = '700 18px monospace'; bufx.textAlign = 'center'; bufx.fillText('EXTINCTION', bw / 2, bh / 2); bufx.textAlign = 'left'; }
+    // blit upscaled
+    cx.imageSmoothingEnabled = false; cx.drawImage(buf, 0, 0, bw, bh, 0, 0, cv.width, cv.height);
+  }
+
+  // ---------------------------------------------------- charts + panels (ported)
+  function drawCharts() {
+    const W = ch.width = ch.clientWidth, H = ch.height = 320; chx.clearRect(0, 0, W, H);
+    const all = world.history; if (all.length < 2) return;
+    // decimate to at most one sample per output pixel: stroking 4000 points
+    // four times, twenty times a second, was pure waste
+    const stride = Math.max(1, Math.ceil(all.length / Math.max(2, W)));
+    const hist = stride === 1 ? all : all.filter((_, i) => i % stride === 0 || i === all.length - 1);
+    const n = hist.length, X = (i) => (i / (n - 1)) * W;
+    // population and plant count run on wildly different scales (10s vs
+    // 1000s), so each gets its own row with its own independent axis max
+    // instead of being squashed onto a shared one.
+    let mPop = 1, mPlant = 1, mc = 1, ms = 1;
+    for (const s of hist) { mPop = Math.max(mPop, s.pop); mPlant = Math.max(mPlant, s.plants); mc = Math.max(mc, s.avgNodes); ms = Math.max(ms, s.species); }
+    const seg = H / 4;
+    const line = (get, color, sMax, y0) => { chx.strokeStyle = color; chx.lineWidth = 1.5; chx.beginPath(); for (let i = 0; i < n; i++) { const y = y0 + (seg - 14) - (get(hist[i]) / sMax) * (seg - 14); i ? chx.lineTo(X(i), y) : chx.moveTo(X(i), y); } chx.stroke(); };
+    const lab = (t, y, c) => { chx.fillStyle = c; chx.font = '10px monospace'; chx.fillText(t, 4, y); };
+    line(s => s.pop, '#6ee87a', mPop, 4); lab('POPULATION total (' + world.stats.pop + ' / peak ' + Math.round(mPop) + ')', 12, '#9fb');
+    line(s => s.plants, '#5fe07a', mPlant, seg + 4); lab('PLANTS count (' + world.stats.plants + ' / peak ' + Math.round(mPlant) + ')', seg + 12, '#9d9');
+    line(s => s.avgNodes, '#ffc24d', mc, 2 * seg + 4); lab('COMPLEXITY avg genome (' + mc.toFixed(1) + ')', 2 * seg + 12, '#fd9');
+    line(s => s.species, '#35e0d8', ms, 3 * seg + 4); lab('SPECIES count (' + ms + ' peak)', 3 * seg + 12, '#7ee');
+  }
+  const row = (k, v) => `<div class="r"><span>${k}</span><b>${v}</b></div>`;
+  function updateHUD() {
+    const s = world.stats, phase = world.light > 0.66 ? 'day' : world.light < 0.33 ? 'night' : 'twilight', seas = world.season > 0.66 ? 'summer' : world.season < 0.33 ? 'winter' : 'shoulder';
+    $('hud').innerHTML = row('world age', ((world.bt || 0) / world.params.yearLen).toFixed(1) + ' yr') + row('phase', phase + ' / ' + seas) + row('population', s.pop + ' / ' + C.CAPS.POP) + row('herbivores', s.herb) + row('carnivores', s.carn) + row('species', s.species) + row('plants', s.plants) + row('carrion', s.carrion) + row('toxin zones', s.hazards) + row('avg genome', s.avgNodes.toFixed(2) + ' nodes') + row('avg neighbours', (s.crowd || 0).toFixed(1)) + row('seed', world.seed) + row('fliers', s.fliers) + row('aquatic', s.aquatic) + row('deep divers', s.divers);
+  }
+  function updateDeaths() {
+    const d = world.deaths, tot = d.starvation + d.oldage + d.predation + d.toxin || 1;
+    const bar = (k, c) => { const pct = Math.round(d[k] / tot * 100); return `<div class="r"><span>${k}</span><b>${d[k]} (${pct}%)</b></div><div class="barwrap"><span class="bar" style="width:${pct}%;background:${c}"></span></div>`; };
+    const log = world.deathLog.slice(-7).reverse().map(e => `<div class="logrow">gen ${e.gen} · age ${e.age} · <span style="color:${cc(e.cause)}">${e.cause}</span></div>`).join('');
+    $('deaths').innerHTML = bar('starvation', '#ffc24d') + bar('predation', '#ff6b5e') + bar('oldage', '#7ee') + bar('toxin', '#b070d0') + '<div class="logttl">recent deaths</div>' + (log || '<div class="dim">none yet</div>');
+  }
+  const cc = (c) => c === 'predation' ? '#ff6b5e' : c === 'toxin' ? '#b070d0' : c === 'oldage' ? '#7ee' : '#ffc24d';
+  // plain-language name for an evolved body plan
+  function silhouette(ph) {
+    const EL = ph.elong, NK = ph.neck, LL = ph.legLen;
+    if (ph.canFly) return NK > 1.1 ? 'crane-like flier' : 'flier';
+    if (EL > 2.0 && LL < 0.6) return ph.canSwim ? 'eel / shark form' : 'serpentine';
+    if (ph.canSwim && EL > 1.5) return 'shark form';
+    if (NK > 1.3 && LL > 1.4) return 'giraffe form';
+    if (NK > 1.3) return 'long-necked browser';
+    if (LL > 1.8) return 'stilt-legged strider';
+    if (LL < 0.5) return 'squat crawler';
+    if (EL < 0.6) return 'orb / tank form';
+    return 'generalist quadruped';
+  }
+  function updateInspector() {
+    const el = $('inspect');
+    if (!selected || !selected.alive) { el.innerHTML = '<div class="dim">click a creature to inspect its genome & lineage</div>'; return; }
+    const c = selected, ph = c.ph, role = ph.carnivory > 0.55 ? 'CARNIVORE' : ph.carnivory > 0.25 ? 'OMNIVORE' : 'HERBIVORE';
+    const counts = {}; for (const p of ph.parts) counts[p.type] = (counts[p.type] || 0) + 1;
+    const bar = (v) => `<span class="barwrap"><span class="bar" style="width:${Math.round(v * 100)}%"></span></span>`;
+    el.innerHTML = `<div class="tag" style="color:${creatureFill(c)}">${role} · gen ${c.lineage} · <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${C.speciesColor(c.speciesId)}"></span> sp#${c.speciesId}</div>` +
+      row('energy', c.energy.toFixed(0) + ' / ' + ph.storage.toFixed(0)) + row('age', c.age.toFixed(0) + ' / ' + c.maxAge.toFixed(0)) +
+      `<div class="r"><span>hunger</span>${bar(c.hunger)}</div><div class="r"><span>fear</span>${bar(c.fear)}</div>` +
+      row('repro cooldown', c.reproCD > 0 ? c.reproCD.toFixed(0) + 's' : 'ready') + '<hr>' +
+      row('genome', ph.nodeCount + ' nodes') + row('body size', ph.mass.toFixed(1) + ' mass · ×' + (c.genome.scale||1).toFixed(2)) + row('body plan', 'elong ' + ph.elong.toFixed(2) + ' · neck ' + ph.neck.toFixed(2) + ' · leg ' + ph.legLen.toFixed(2)) + row('silhouette', silhouette(ph)) + row('lifespan', c.maxAge.toFixed(0) + 's (×' + (c.genome.life||1).toFixed(2) + ')') + row('mouth', ph.sMouthCarn > 0 ? 'carnivore (fanged)' : 'herbivore (beak)') +
+      row('legs/fins/wings', (counts.LEG || 0) + '/' + (counts.FIN || 0) + '/' + (counts.WING || 0)) + row('eyes/horns/spikes', (counts.EYE || 0) + '/' + (counts.HORN || 0) + '/' + (counts.SPIKE || 0)) +
+      row('land/water/air', ph.speedLand.toFixed(0) + '/' + ph.speedWater.toFixed(0) + '/' + ph.speedAir.toFixed(0)) + row('sense', ph.sense.toFixed(0)) + row('attack/def', ph.attack.toFixed(0) + '/' + ph.defense.toFixed(0)) + row('toxicity', ph.toxin.toFixed(2));
+  }
+
+  // ---------------------------------------------------- loop
+  const STEP_BUDGET_MS = 13;   // hard ceiling on simulation time per frame
+  function frame() {
+    if (running && !world.extinct) {
+      const t0 = performance.now();
+      for (let i = 0; i < speed; i++) {
+        world.step(1 / 60);
+        // A high speed setting must never freeze the tab: if the world cannot
+        // keep up, run fewer steps this frame rather than dropping the frame.
+        if ((i & 3) === 3 && performance.now() - t0 > STEP_BUDGET_MS) break;
+      }
+    }
+    render();
+    if (treeOpen) {
+      treeAcc++;
+      if (treeAcc % 24 === 0) { treeLayout = buildTreeLayout(); if (treeAuto) fitCam(); }
+      if (treeAcc % 6 === 0) drawTree();
+    }
+    if (fN % 6 === 0) drawCharts();
+    if (fN % 10 === 0) { updateHUD(); updateDeaths(); updateInspector(); }
+    fN++; requestAnimationFrame(frame);
+  }
+
+  // ---------------------------------------------------- camera input
+  let drag = null;
+  cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, moved: false }; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', e => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true; cam.x = drag.cx + dx / PIXEL; cam.y = drag.cy + dy / PIXEL; });
+  cv.addEventListener('pointerup', e => { if (drag && !drag.moved) pick(e); drag = null; });
+  function zoomAt(mx, my, factor) {
+    const bx = mx / PIXEL, by = my / PIXEL; const ix = (bx - cam.x) / cam.z, iy = (by - cam.y) / cam.z;
+    cam.z = clamp(cam.z * factor, minZoom, 4); cam.x = bx - ix * cam.z; cam.y = by - iy * cam.z;
+  }
+  cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(); zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.12 : 0.89); }, { passive: false });
+  function pick(e) {
+    const r = cv.getBoundingClientRect(); const ix = ((e.clientX - r.left) / PIXEL - cam.x) / cam.z, iy = ((e.clientY - r.top) / PIXEL - cam.y) / cam.z;
+    let best = null, bd = Infinity; for (const c of world.creatures) { if (c._sx == null) continue; const dx = c._sx - ix, dy = (c._sy - c.ph.radius) - iy, d = dx * dx + dy * dy; if (d < bd && d < (c.ph.radius + 12) ** 2) { bd = d; best = c; } }
+    selected = best;
+  }
+
+  // ---------------------------------------------------- controls
+  function flags() { return { brains: $('f_brains').checked, dayNight: $('f_day').checked, seasons: $('f_season').checked, toxins: $('f_tox').checked }; }
+  // Crypto-strength fresh seed. The core stays fully deterministic per seed —
+  // determinism is a debugging feature, not a default, so every load/reset is a
+  // brand new universe unless the seed is explicitly locked.
+  function randomSeed() {
+    try {
+      if (window.crypto && window.crypto.getRandomValues) {
+        const a = new Uint32Array(1); window.crypto.getRandomValues(a);
+        return (a[0] >>> 0) || 1;
+      }
+    } catch (e) { /* fall through */ }
+    return (((Math.random() * 4294967296) >>> 0) ^ (Date.now() >>> 0)) >>> 0 || 1;
+  }
+  function build() {
+    const lock = $('seedLock') && $('seedLock').checked;
+    if (!lock) $('seed').value = randomSeed();
+    let seed = parseInt($('seed').value, 10) >>> 0;
+    if (!seed) { seed = randomSeed(); $('seed').value = seed; }
+    const sp = parseInt($('startPop').value, 10);
+    world = C.makeWorld({
+      w: WORLD_W, h: WORLD_H, seed, tileSize: TILE,
+      startPop: clamp(isFinite(sp) ? sp : 10, 2, 2000),
+      startPlants: clamp(parseInt($('startPlants').value, 10) || 0, 0, 40000),
+      mutationRate: parseFloat($('mut').value), plantRate: parseFloat($('plant').value),
+      timeScale: parseFloat($('tscale').value), flags: flags(),
+    });
+    selected = null; treeSel = null; treeLayout = null; showTreeNode(null);
+    buildTerrain(); fitCamera();
+    if (treeOpen) treeFit();
+  }
+  $('play').addEventListener('click', () => { running = !running; $('play').textContent = running ? '⏸' : '▶'; });
+  $('reset').addEventListener('click', build);
+  $('zin').addEventListener('click', () => zoomAt(cv.width / 2, cv.height / 2, 1.25));
+  $('zout').addEventListener('click', () => zoomAt(cv.width / 2, cv.height / 2, 0.8));
+  $('full').addEventListener('click', () => { const el = document.documentElement; if (!document.fullscreenElement) el.requestFullscreen && el.requestFullscreen(); else document.exitFullscreen(); });
+  $('spd').addEventListener('input', e => { speed = +e.target.value; $('spdv').textContent = speed + '×'; });
+  $('mut').addEventListener('input', e => { $('mutv').textContent = (+e.target.value).toFixed(2); if (world) world.params.mutationRate = +e.target.value; });
+  $('plant').addEventListener('input', e => { $('plantv').textContent = e.target.value; if (world) world.params.plantRate = +e.target.value; });
+  $('cmode').addEventListener('change', e => colorMode = e.target.value);
+  $('tscale').addEventListener('input', e => { $('tscalev').textContent = (+e.target.value).toFixed(3); if (world) world.params.timeScale = +e.target.value; });
+  for (const id of ['f_brains', 'f_day', 'f_season', 'f_tox']) $(id).addEventListener('change', () => { if (world) world.flags = flags(); });
+  window.addEventListener('resize', () => { resizeBuffers(); });
+
+  // ---------------------------------------------------- phylogeny overlay
+  // A live genealogy: every individual is a node, time runs downward, and a
+  // branch stops dead the moment its creature dies. What is left running to the
+  // bottom edge is exactly the ancestry that is still going.
+  const tcv = $('treecv'), tctx = tcv.getContext('2d');
+  let treeOpen = false, treeLayout = null, treeSel = null, treeAcc = 0;
+  // Auto-fit follows the tree as it grows. Any manual pan or zoom hands control
+  // back to the user; the fit button re-arms it.
+  let treeAuto = true;
+  let tcam = { x: 40, y: 0, zx: 1, zy: 1 };
+
+  // Two granularities of the same picture. Species view is the readable one:
+  // one circle per species, sized by population. Pedigree view is every
+  // individual that ever lived -- the full waterfall.
+  let treeMode = 'species';
+  const treeGeom = () => treeMode === 'species'
+    ? { COL: 130, ROW: 118, RMAX: 30, RK: 0.20, popScale: true }
+    : { COL: 22, ROW: 52, RMAX: 13, RK: 0.34, popScale: false };
+  const treeRoot = () => (treeMode === 'species' ? world.phylo.root : world.ped.root);
+  const treeCount = () => (treeMode === 'species' ? world.phylo.count : world.ped.count);
+
+  function buildTreeLayout() {
+    const P = { root: treeRoot() };
+    if (!P.root) return null;
+    // Rows are GENERATION DEPTH, not time: evenly spaced ranks are what make a
+    // dendrogram readable. Iterative walk, because a deep lineage would blow the
+    // stack on recursion.
+    const order = [], ns = [P.root], ds = [0];
+    let leaf = 0, maxDepth = 0;
+    while (ns.length) {
+      const n = ns.pop(), d = ds.pop();
+      n._d = d; order.push(n);
+      if (d > maxDepth) maxDepth = d;
+      if (!n.kids.length) n._x = leaf++;
+      for (let i = n.kids.length - 1; i >= 0; i--) { ns.push(n.kids[i]); ds.push(d + 1); }
+    }
+    // reverse pre-order visits every child before its parent: centre parents
+    // over their children, and mark which branches still have living descendants
+    for (let i = order.length - 1; i >= 0; i--) {
+      const n = order[i];
+      let liv = n.alive && !n.root;
+      if (n.kids.length) {
+        let s = 0;
+        for (let k = 0; k < n.kids.length; k++) { s += n.kids[k]._x; if (n.kids[k]._liv) liv = true; }
+        n._x = s / n.kids.length;
+      }
+      n._liv = liv;
+    }
+    return { order, leaves: Math.max(1, leaf), maxDepth };
+  }
+
+  // camera only: frame whatever the current layout spans. Horizontal and
+  // vertical fit are computed and applied INDEPENDENTLY -- a tree that is
+  // wide but shallow (many species, few generations so far) still stretches
+  // to fill the full height instead of both axes collapsing to whichever is
+  // more cramped. This keeps the most recent generation row pinned at the
+  // bottom of the view instead of the whole tree shrinking into a strip.
+  function fitCam() {
+    const L = treeLayout; if (!L) return;
+    const r = tcv.getBoundingClientRect();
+    const W = Math.max(1, Math.floor(r.width) || tcv.width || 1200);
+    const H = Math.max(1, Math.floor(r.height) || tcv.height || 800);
+    const G = treeGeom();
+    const zx = (W - 90) / Math.max(1, L.leaves * G.COL);
+    // denominator uses maxDepth (not maxDepth+1): rows fill the FULL available
+    // height so the deepest/most-recent row lands right at the bottom edge at
+    // every stage of the tree's growth, not just once it is many rows deep.
+    const zy = (H - 110) / Math.max(1, Math.max(1, L.maxDepth) * G.ROW);
+    tcam.zx = clamp(zx, 0.02, 3);
+    tcam.zy = clamp(zy, 0.05, 20);   // let a shallow tree stretch rows all the way to the bottom
+    tcam.x = (W - L.leaves * G.COL * tcam.zx) / 2;
+    tcam.y = 20;
+  }
+  function treeFit() { treeLayout = buildTreeLayout(); treeAuto = true; syncFitBtn(); fitCam(); }
+  function syncFitBtn() { $('treefit').textContent = treeAuto ? 'fit: auto' : 'fit'; }
+  function treeManual() { if (treeAuto) { treeAuto = false; syncFitBtn(); } }
+
+  function drawTree() {
+    const r0 = tcv.getBoundingClientRect();
+    if (tcv.width !== Math.floor(r0.width) || tcv.height !== Math.floor(r0.height)) {
+      tcv.width = Math.max(1, Math.floor(r0.width)); tcv.height = Math.max(1, Math.floor(r0.height));
+      if (treeAuto) fitCam();
+    }
+    const W = tcv.width, H = tcv.height;
+    tctx.setTransform(1, 0, 0, 1, 0, 0);
+    tctx.fillStyle = '#04090b'; tctx.fillRect(0, 0, W, H);
+    const L = treeLayout; if (!L) return;
+
+    const G = treeGeom();
+    const colW = G.COL * tcam.zx, rowH = G.ROW * tcam.zy;
+    const X = (n) => n._x * colW + tcam.x;
+    const Y = (n) => n._d * rowH + tcam.y + 46;
+    const rad = Math.min(G.RMAX, Math.max(1.1, colW * G.RK));
+    const ord = L.order;
+    let maxPop = 1;
+    for (let i = 0; i < ord.length; i++) if (ord[i].pop > maxPop) maxPop = ord[i].pop;
+
+    // generation rules + labels, so the ranks read as ranks
+    tctx.font = '10px "IBM Plex Mono", monospace'; tctx.textAlign = 'left';
+    const rowStep = rowH < 14 ? Math.ceil(14 / Math.max(1, rowH)) : 1;
+    for (let d = 0; d <= L.maxDepth; d += rowStep) {
+      const py = d * rowH + tcam.y + 46;
+      if (py < 30 || py > H) continue;
+      tctx.strokeStyle = 'rgba(53,224,216,0.055)'; tctx.lineWidth = 1;
+      tctx.beginPath(); tctx.moveTo(46, py); tctx.lineTo(W, py); tctx.stroke();
+      tctx.fillStyle = '#3f5c58'; tctx.fillText('gen ' + d, 6, py + 3);
+    }
+
+    // ---- edges: orthogonal elbows (parent -> bus -> child), drawn under nodes
+    let live = 0;
+    tctx.lineWidth = Math.max(0.7, Math.min(2.2, colW * 0.055));
+    for (let i = 0; i < ord.length; i++) {
+      const n = ord[i];
+      if (!n.p) continue;
+      const x1 = X(n), x0 = X(n.p);
+      if (Math.max(x0, x1) < -30 || Math.min(x0, x1) > W + 30) continue;
+      const y1 = Y(n), y0 = Y(n.p);
+      if (y1 < -30 || y0 > H + 30) continue;
+      if (n.alive) live++;
+      // a branch that still has living descendants is the interesting one
+      tctx.strokeStyle = n._liv ? 'rgba(53,224,216,0.52)' : 'rgba(62,88,86,0.40)';
+      // a self-reproduction is drawn dashed and amber: one parent, not a pairing
+      if (n.asex) {
+        tctx.setLineDash([3, 3]);
+        tctx.strokeStyle = n._liv ? 'rgba(255,194,77,0.8)' : 'rgba(150,120,60,0.5)';
+      }
+      const midY = y0 + rowH * 0.52;
+      tctx.beginPath();
+      tctx.moveTo(x0, y0 + rad * 0.85);
+      tctx.lineTo(x0, midY);
+      tctx.lineTo(x1, midY);
+      tctx.lineTo(x1, y1 - rad * 0.85);
+      tctx.stroke();
+      if (n.asex) tctx.setLineDash([]);
+    }
+
+    // ---- nodes
+    if (colW > 4) {
+      const label = rad >= 9;
+      tctx.textAlign = 'center'; tctx.textBaseline = 'middle';
+      tctx.font = Math.round(rad * 0.95) + 'px "IBM Plex Mono", monospace';
+      for (let i = 0; i < ord.length; i++) {
+        const n = ord[i];
+        if (n.root) continue;
+        const px = X(n); if (px < -40 || px > W + 40) continue;
+        const py = Y(n); if (py < -40 || py > H + 40) continue;
+        const col = C.speciesColor(n.sp);
+        // node size carries current population: big circles are what is winning
+        const rr = G.popScale ? rad * (0.55 + 0.95 * Math.sqrt(Math.min(1, n.pop / maxPop))) : rad;
+        if (n.alive) { tctx.fillStyle = col; tctx.strokeStyle = '#eafffd'; }
+        else { tctx.fillStyle = 'rgba(16,28,27,0.95)'; tctx.strokeStyle = 'rgba(80,106,104,0.75)'; }
+        tctx.lineWidth = n === treeSel ? 3 : 1.2;
+        if (n === treeSel) tctx.strokeStyle = '#ffc24d';
+        tctx.beginPath(); tctx.arc(px, py, rr, 0, 7); tctx.fill(); tctx.stroke();
+        if (label) {
+          tctx.font = Math.round(Math.max(9, rr * 0.8)) + 'px "IBM Plex Mono", monospace';
+          tctx.fillStyle = n.alive ? '#06100f' : 'rgba(190,220,216,0.7)';
+          tctx.fillText(String(n.sp), px, py + 0.5);
+          if (G.popScale) {
+            tctx.font = '10px "IBM Plex Mono", monospace';
+            tctx.fillStyle = n.alive ? '#8fb5b0' : 'rgba(120,146,140,0.6)';
+            tctx.fillText(n.alive ? n.pop + '' : 'extinct', px, py + rr + 11);
+          }
+        }
+      }
+      tctx.textAlign = 'left'; tctx.textBaseline = 'alphabetic';
+    }
+
+    $('treeinfo').textContent = (treeMode === 'species'
+      ? treeCount() + ' species recorded · ' + live + ' living · ' + L.maxDepth + ' splits deep'
+      : treeCount() + ' individuals · ' + live + ' living · ' + L.maxDepth + ' generations deep')
+      + ' · drag to pan, scroll to zoom, click a node';
+  }
+
+  function pickTree(mx, my) {
+    const L = treeLayout; if (!L) return null;
+    const G = treeGeom();
+    const colW = G.COL * tcam.zx, rowH = G.ROW * tcam.zy;
+    const rad = Math.min(G.RMAX, Math.max(1.1, colW * G.RK)) + 6;
+    let best = null, bd = rad * rad;
+    for (let i = 0; i < L.order.length; i++) {
+      const n = L.order[i];
+      if (n.root) continue;
+      const dx = (n._x * colW + tcam.x) - mx, dy = (n._d * rowH + tcam.y + 46) - my;
+      const d2 = dx * dx + dy * dy;
+      if (d2 <= bd) { bd = d2; best = n; }
+    }
+    return best;
+  }
+
+  function showTreeNode(n) {
+    const el = $('treenode');
+    if (!n) { el.className = 'treenode'; return; }
+    const yr = (t) => (t / world.params.yearLen).toFixed(2);
+    const role = n.carn > 0.55 ? 'CARNIVORE' : n.carn > 0.25 ? 'OMNIVORE' : 'HERBIVORE';
+    el.className = 'treenode on';
+    const isSp = treeMode === 'species';
+    el.innerHTML =
+      '<div class="tag" style="color:' + C.speciesColor(n.sp) + '">' + (isSp ? 'SPECIES #' + n.sp : role + ' · sp#' + n.sp) + ' · ' + (isSp ? role : 'gen ' + n.gen) +
+      (n.alive ? ' · <span style="color:#35e0d8">LIVING</span>' : ' · <span style="color:#6f928c">EXTINCT</span>') + '</div>' +
+      (isSp ? row('population', n.alive ? n.pop : 0) + row('peak population', n.peak) : '') +
+      row(isSp ? 'split off at' : 'born', yr(n.t0) + ' yr') +
+      row(n.alive ? 'age' : 'died at', n.alive ? (((world.bt || 0) - n.t0) / world.params.yearLen).toFixed(2) + ' yr' : yr(n.t1) + ' yr') +
+      row(isSp ? 'descendant species' : 'descendants', countKids(n)) +
+      (isSp ? '' : row('origin', n.asex ? 'self (last resort)' : 'mated pair')) + '<hr>' +
+      row('generation', n.gen) + row('genome', n.nn + ' nodes') +
+      row('mass', n.m.toFixed(1) + ' · ×' + n.sc.toFixed(2)) +
+      row('body plan', 'elong ' + n.el.toFixed(2) + ' · neck ' + n.nk.toFixed(2) + ' · leg ' + n.lg.toFixed(2)) +
+      row('locomotion', (n.fly ? 'flier' : n.swim ? 'diver' : 'walker'));
+  }
+  function countKids(n) {
+    let c = 0; const st = [n];
+    while (st.length) { const q = st.pop(); for (let i = 0; i < q.kids.length; i++) { c++; st.push(q.kids[i]); } }
+    return c;
+  }
+
+  function setTree(on) {
+    treeOpen = on;
+    $('tree').className = on ? 'on' : '';
+    if (on) { treeFit(); drawTree(); }
+  }
+  $('treebtn').addEventListener('click', () => setTree(true));
+  $('treeclose').addEventListener('click', () => setTree(false));
+  $('treefit').addEventListener('click', () => { treeFit(); drawTree(); });
+  syncFitBtn();
+  function setTreeMode(m) {
+    treeMode = m;
+    $('treemode').textContent = 'view: ' + (m === 'species' ? 'species' : 'ancestry');
+    treeSel = null; showTreeNode(null); treeFit(); drawTree();
+  }
+  $('treemode').addEventListener('click', () => setTreeMode(treeMode === 'species' ? 'ped' : 'species'));
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 't' || e.key === 'T') { if (!/^(INPUT|SELECT|TEXTAREA)$/.test((e.target || {}).tagName || '')) setTree(!treeOpen); }
+    else if ((e.key === 'm' || e.key === 'M') && treeOpen) setTreeMode(treeMode === 'species' ? 'ped' : 'species');
+    else if (e.key === 'Escape' && treeOpen) setTree(false);
+  });
+  let tdrag = null;
+  tcv.addEventListener('pointerdown', (e) => {
+    tdrag = { x: e.clientX, y: e.clientY, cx: tcam.x, cy: tcam.y, moved: false };
+    tcv.setPointerCapture(e.pointerId);
+  });
+  tcv.addEventListener('pointermove', (e) => {
+    if (!tdrag) return;
+    const dx = e.clientX - tdrag.x, dy = e.clientY - tdrag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) { tdrag.moved = true; treeManual(); }
+    tcam.x = tdrag.cx + dx; tcam.y = tdrag.cy + dy; drawTree();
+  });
+  tcv.addEventListener('pointerup', (e) => {
+    if (tdrag && !tdrag.moved) {
+      const r = tcv.getBoundingClientRect();
+      treeSel = pickTree(e.clientX - r.left, e.clientY - r.top);
+      showTreeNode(treeSel); drawTree();
+    }
+    tdrag = null;
+  });
+  tcv.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const r = tcv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+    treeManual();
+    const f = e.deltaY < 0 ? 1.15 : 0.87;
+    tcam.zx = clamp(tcam.zx * f, 0.004, 6);
+    tcam.zy = clamp(tcam.zy * f, 0.004, 6);
+    // f is applied identically to both axes, so a manual zoom scales the
+    // current (possibly non-uniform) fit up/down without re-squaring it.
+    tcam.x = mx - (mx - tcam.x) * f;
+    tcam.y = (my - 46) - ((my - 46) - tcam.y) * f;
+    drawTree();
+  }, { passive: false });
+
+  // ---------------------------------------------------- go
+  resizeBuffers(); build(); $('spdv').textContent = speed + '×';
+  requestAnimationFrame(frame);
+})();
+
+</script>
+</body>
+</html>
