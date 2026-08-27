@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GENESIS v9 — island ecosystem</title>
+<title>GENESIS v7 — island ecosystem</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Major+Mono+Display&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -65,7 +65,7 @@
 <div id="app">
   <div id="stage">
     <div class="topbar">
-      <h1>genesis <span style="font-size:0.62em;opacity:0.45;font-weight:400">v9</span></h1>
+      <h1>genesis</h1>
       <button id="play">⏸</button>
       <button id="reset">↺</button>
       <button id="zin">+</button><button id="zout">-</button><button id="full">⛶</button>
@@ -84,21 +84,20 @@
       <h2>systems (toggle to isolate)</h2>
       <div class="toggles">
         <label><input type="checkbox" id="f_brains" checked> neural brains</label>
-        <label><input type="checkbox" id="f_day"> day / night</label>
+        <label><input type="checkbox" id="f_day" checked> day / night</label>
         <label><input type="checkbox" id="f_season" checked> seasons</label>
         <label><input type="checkbox" id="f_tox" checked> toxins</label>
         <label><input type="checkbox" id="f_climate" checked> climate drift</label>
-        <label title="v9: bodies are drawn as fused cell clusters with jointed limbs. Off = the older ellipse-and-appendages renderer."><input type="checkbox" id="f_organic" checked> organic bodies</label>
       </div>
       <div class="sliders">
-        <div class="ctl">mutation rate <b id="mutv">0.60</b><input id="mut" type="range" min="0.1" max="1" step="0.01" value="0.6"></div>
+        <div class="ctl">mutation rate <b id="mutv">0.30</b><input id="mut" type="range" min="0.02" max="0.6" step="0.01" value="0.3"></div>
         <div class="ctl">time scale (yr speed) <b id="tscalev">0.100</b><input id="tscale" type="range" min="0.01" max="1" step="0.01" value="0.1"></div>
-        <div class="ctl">plant regrowth <b id="plantv">200</b><input id="plant" type="range" min="10" max="900" step="10" value="200"></div>
+        <div class="ctl">plant regrowth <b id="plantv">10</b><input id="plant" type="range" min="10" max="900" step="10" value="10"></div>
       </div>
       <div class="field">color by
         <select id="cmode"><option value="diet">diet</option><option value="species">species</option><option value="hue">display hue</option></select>
       </div>
-      <div class="field">start pop <input id="startPop" type="number" min="2" max="2000" value="10">
+      <div class="field">start pop <input id="startPop" type="number" min="2" max="2000" value="2">
         start plants <input id="startPlants" type="number" min="0" max="40000" value="500">
         seed <input id="seed" type="number" min="1" max="4294967295" value="2024">
         <label style="display:flex;align-items:center;gap:4px;cursor:pointer" title="off = new random universe every load/reset"><input type="checkbox" id="seedLock"> lock</label></div>
@@ -132,7 +131,7 @@
 </div>
 <script>
 /* =============================================================================
- * GENESIS v9 — generative-genome A-Life core (pure logic, no DOM)
+ * GENESIS v2 — generative-genome A-Life core (pure logic, no DOM)
  * Adds, on top of v1: neural brains (evolvable behavior), sexual reproduction
  * + tree-genome crossover, distance-based speciation w/ reproductive isolation,
  * day/night cycle, seasons (boom-bust plants), toxicity + aposematism.
@@ -223,42 +222,13 @@
   // season, their altitude, how far they are from open water, whether they
   // are standing in something toxic, their own aposematic load and their
   // life stage. More input channels = more behaviour that selection can act on.
-  // v9.2 raised OUT from 6 to 8 (see O_GAIT/O_GRAB below). This is safe for
-  // every pre-existing genome: output ids are fixed and implicit, so an old
-  // brain simply has no connections into the two new outputs and reads
-  // tanh(0)=0 from them, i.e. exactly the pre-v9.2 behaviour, until mutation
-  // wires something in. Seed genomes wire all OUT outputs from the start.
-  const IN = 26, OUT = 8;
+  const IN = 26, OUT = 6;
   const BIAS_ID = IN;            // one always-on pseudo-input (value 1.0), NEAT-standard way to give
                                   // hidden/output nodes a learnable bias without a separate per-node scalar
   const NOUT_BASE = 100000;      // output node ids: fixed range, never collides with hidden ids
   const RANK_OUT = 1e9;          // outputs always sort last in the feedforward order
   // output indices
   const O_MOVEX = 0, O_MOVEY = 1, O_PURSUE = 2, O_AVOID = 3, O_SOCIAL = 4, O_MATE = 5;
-  // v9.2 MOTOR OUTPUTS. Limbs are no longer only a passive stat: a brain can
-  // drive its gait harder for extra ground/water/air speed, and extend its
-  // limbs and neck to reach food it could not otherwise touch. Both are paid
-  // for in metabolism every tick they are used, and both are scaled by what
-  // the body actually has -- a legless blob gets almost nothing from O_GAIT
-  // no matter how hard it drives it, so limbs have to be evolved AND learned.
-  // Neither can reduce anything below its pre-v9.2 value (drive 0 == old
-  // behaviour exactly), so no existing lineage is disadvantaged by the change.
-  const O_GAIT = 6, O_GRAB = 7;
-  const GAIT_BOOST = 0.55;  // max fractional speed gain at full drive on a fully-limbed body
-  const GAIT_COST = 0.85;   // upkeep multiplier added at full drive (only while actually moving)
-  const GRAB_GAIN = 0.55;   // max fractional reach gain at full extension
-  const GRAB_COST = 0.30;   // upkeep multiplier added at full extension
-  // Saturating limb-capability terms: a couple of good legs buys most of the
-  // available boost, and further limbs give diminishing returns instead of
-  // letting a centipede run away with the whole ecosystem.
-  function gaitFrac(p, inWater) {
-    const l = inWater ? (p.finEff || 0) : (p.speedAir > 0 ? (p.wingEff || 0) : (p.sLegs || 0));
-    return l > 0 ? l / (0.6 + l) : 0;
-  }
-  function grabFrac(p) {
-    const a = (p.neck || 0) * 0.6 + (p.sLegs || 0) * 0.3 + (p.sFins || 0) * 0.15 + (p.sTail || 0) * 0.15;
-    return a > 0 ? a / (0.8 + a) : 0;
-  }
   const BRAIN_HID0 = 10;         // initial hidden count for a seed genome (matches v7's baseline shape)
 
   // ---- innovation bookkeeping (world-scoped: see makeWorld) ---------------
@@ -695,21 +665,6 @@
     // renders and contributes nothing at all.
     let nextCellIdx = 1; // root consumes slot 0 in the place() call below
     function cellOf(idx) { return cellState ? (cellState[idx] || { grow: 1, alive: true }) : null; }
-    // v9.2: LIMB GROUPING. Every part is tagged with the index of the rigid
-    // group it belongs to. Group 0 is the torso: everything reachable from
-    // CORE without passing through a limb root. Each rendered INSTANCE of a
-    // limb-root node (a mirrored pair is two instances, a radial ring is N)
-    // opens its own group carrying its entire subtree, recorded with the
-    // attachment point and base angle it hangs from. Nested limbs deeper in
-    // an already-open group do NOT open another one, so every group is
-    // guaranteed to be a single connected subtree with exactly one pivot --
-    // which is what lets the renderer fuse each group into one blob and
-    // swing it about that pivot without ever stranding a disconnected part.
-    // Purely additive: no stat, position or radius depends on grouping, so
-    // develop(genome) is still byte-identical to pre-v9.2 apart from the
-    // extra `lg` field on parts and the new ph.groups array.
-    const groups = [{ type: 'CORE', px: 0, py: 0, ang: 0 }];
-    function isLimbRoot(t) { return t === 'LEG' || t === 'FIN' || t === 'WING' || t === 'TAIL'; }
     // v8.3: expands a segs>1 node into a tapering, optionally curling chain of
     // up to MAX_SEGS same-type parts running on from (x0,y0,ang0,r0), bounded
     // by CAPS.PARTS_RENDERED like everything else in develop(). Returns the
@@ -719,7 +674,7 @@
     // regardless, returning the input unchanged. size0 is the node's own
     // (already grow-scaled) effective size, so a juvenile's chain tapers down
     // from a smaller starting point, not its adult size.
-    function placeChain(node, x0, y0, ang0, r0, size0, gid) {
+    function placeChain(node, x0, y0, ang0, r0, size0) {
       const segs = clamp(node.segs | 0, 1, MAX_SEGS);
       let x = x0, y = y0, ang = ang0, r = r0, size = size0;
       for (let s = 1; s < segs; s++) {
@@ -728,13 +683,13 @@
         ang += node.curl;
         const segR = 4 + size * 7, dist = r + segR + 2;
         x += Math.cos(ang) * dist; y += Math.sin(ang) * dist;
-        parts.push({ type: node.type, mode: node.mode, x, y, r: segR, size, lg: gid | 0 });
+        parts.push({ type: node.type, mode: node.mode, x, y, r: segR, size });
         accumOne(node.type, node.mode, size, 1);
         r = segR;
       }
       return [x, y, ang, r];
     }
-    function place(node, px, py, baseAngle, depth, parentRadius, statN = node.repeat, cellIdx = 0, grp = 0) {
+    function place(node, px, py, baseAngle, depth, parentRadius, statN = node.repeat, cellIdx = 0) {
       if (parts.length >= CAPS.PARTS_RENDERED) return;
       const cs = cellOf(cellIdx);
       if (cs && !cs.alive) return; // dead cell: this node and its whole subtree render/contribute nothing
@@ -742,15 +697,7 @@
       const r = 4 + effSize * 7;
       let x = px, y = py;
       if (node.type !== 'CORE') { const dist = parentRadius + r + 2; x = px + Math.cos(baseAngle) * dist; y = py + Math.sin(baseAngle) * dist; }
-      // open a new rigid group at the first limb root on this path (see above);
-      // the pivot is the attachment point on the PARENT, not this part's centre,
-      // so the limb swings from its socket the way a real joint does
-      let gid = grp;
-      if (grp === 0 && isLimbRoot(node.type) && groups.length < 32) {
-        groups.push({ type: node.type, px, py, ang: baseAngle });
-        gid = groups.length - 1;
-      }
-      parts.push({ type: node.type, mode: node.mode, x, y, r, size: effSize, lg: gid });
+      parts.push({ type: node.type, mode: node.mode, x, y, r, size: effSize });
       accumOne(node.type, node.mode, effSize, statN);
       // segmented chain: this node's children attach at the chain's tip and
       // face the direction the chain currently points (post-curl), not this
@@ -759,7 +706,7 @@
       // every pre-v8.3 (segs always 1) body develops exactly as before.
       let tipX = x, tipY = y, tipAngle = baseAngle, tipR = r;
       if (node.type !== 'CORE' && node.segs > 1) {
-        const tip = placeChain(node, x, y, baseAngle, r, effSize, gid);
+        const tip = placeChain(node, x, y, baseAngle, r, effSize);
         tipX = tip[0]; tipY = tip[1]; tipAngle = tip[2]; tipR = tip[3];
       }
       if (depth >= CAPS.TREE_DEPTH) return;
@@ -780,11 +727,11 @@
           // stats scale linearly with the actual instance count rendered.
           const cnt = clamp(kids[i].radial | 0, 2, MAX_RADIAL);
           for (let j = 0; j < cnt && parts.length < CAPS.PARTS_RENDERED; j++) {
-            place(kids[i], tipX, tipY, childAngle + (j / cnt) * Math.PI * 2, depth + 1, tipR, 1, childIdx, gid);
+            place(kids[i], tipX, tipY, childAngle + (j / cnt) * Math.PI * 2, depth + 1, tipR, 1, childIdx);
           }
         } else {
-          place(kids[i], tipX, tipY, childAngle, depth + 1, tipR, undefined, childIdx, gid);
-          if (kids[i].repeat >= 2 && parts.length < CAPS.PARTS_RENDERED) place(kids[i], tipX, tipY, tipAngle - (childAngle - tipAngle), depth + 1, tipR, undefined, childIdx, gid);
+          place(kids[i], tipX, tipY, childAngle, depth + 1, tipR, undefined, childIdx);
+          if (kids[i].repeat >= 2 && parts.length < CAPS.PARTS_RENDERED) place(kids[i], tipX, tipY, tipAngle - (childAngle - tipAngle), depth + 1, tipR, undefined, childIdx);
         }
       }
     }
@@ -802,7 +749,7 @@
     const tailBonus = 1 + stat.tail * 0.12;
     const speedScale = clamp(1.8 / (0.6 + mass * 0.5), 0.02, 3.2); // tiny darts, giants lumber
     const ph = {
-      parts, groups, nodeCount: countNodes(genome.body), mass, scale: S,
+      parts, nodeCount: countNodes(genome.body), mass, scale: S,
       radius: clamp(4 + mass * 1.5, 4, 170),
       speedLand: clamp((20 + 24 * stat.legs) * speedScale * tailBonus, 2, 120),
       speedWater: clamp((12 + 26 * finEff) * speedScale * tailBonus, 2, 120),
@@ -1362,8 +1309,6 @@
       hunger: 0.5, fear: 0, cooldown: 0, reproCD: 0, alive: true,
       lineage: 0, speciesId: -1,
       cellNodes, cellState, _growAcc: 0, _starveAcc: 0, _growthAvg: GROW_START,
-      _gait: 0, _grab: 0, // v9.2 motor state (see O_GAIT/O_GRAB); renderer reads these
-
       wander: null,   // persistent wander heading (lazily seeded from world rng)
       stuck: 0,       // consecutive blocked-movement steps (anti-grind counter)
       fx: null, fy: null,  // last place food was actually eaten
@@ -1976,13 +1921,6 @@
       // brain runs FIRST: its outputs weight the desires below instead of being
       // bolted on afterwards.
       let pursueGate = 1, avoidPrey = 0, socialGain = 1;
-      // v9.2 motor state. Defaults are the pre-v9.2 "limbs idle" case, so with
-      // brains disabled (flags.brains off) nothing about movement or feeding
-      // changes at all. Both are stored on the creature because the renderer
-      // animates the actual limbs from them -- what you see a creature doing
-      // with its legs IS what its brain is commanding.
-      let gaitDrive = 0, grabDrive = 0;
-      const gaitCap = gaitFrac(p, inWater), grabCap = grabFrac(p);
       if (flags.brains) {
         const norm = (d, ref) => clamp(d / ref, -1, 1);
         inp[0] = 1; inp[1] = c.hunger; inp[2] = c.fear; inp[3] = clamp(c.energy / p.storage, 0, 1);
@@ -2011,16 +1949,7 @@
         pursueGate = 1 + out[O_PURSUE];
         avoidPrey = clamp(out[O_AVOID], 0, 1);
         socialGain = clamp(1 + out[O_SOCIAL], 0, 2); // scales cohesion; cannot create it
-        gaitDrive = clamp(out[O_GAIT], 0, 1);
-        grabDrive = clamp(out[O_GRAB], 0, 1);
       }
-      c._gait = gaitDrive * gaitCap;   // 0..1, what the limbs are actually delivering
-      c._grab = grabDrive * grabCap;
-      // effective reach this tick: extending costs energy, so a brain that
-      // holds full extension permanently starves before one that reaches only
-      // when there is something worth reaching for.
-      const reachEff = p.reach * (1 + GRAB_GAIN * c._grab);
-      if (c._grab > 0.01) c.energy -= p.upkeep * GRAB_COST * c._grab * bdt;
 
       // ---- desire mix (all terms are unit vectors x weight) -----------------
       _dx = 0; _dy = 0;
@@ -2075,12 +2004,12 @@
       // resolve hunting (gated by brain pursue/avoid — aposematism lives here)
       if (hunting && prey) {
         const eager = pursueGate - avoidPrey * 1.5;
-        const rr = (p.radius + prey.ph.radius + reachEff);
+        const rr = (p.radius + prey.ph.radius + p.reach);
         if (eager > 0.2 && preyD < rr * rr && c.cooldown <= 0) { resolveAttack(world, c, prey, flags); c.cooldown = 0.4; }
       }
       // forage consume (plant or carrion)
       if (bestFood) {
-        const rr = p.radius + reachEff + 6;
+        const rr = p.radius + p.reach + 6;
         if (bestFoodD < rr * rr) {
           // v8.4: carrion yield now runs through carrionDigest instead of a
           // flat 0.9 for everyone -- generalists (0.65 floor) do WORSE than
@@ -2114,15 +2043,8 @@
       // move (terrain modulates land speed; mountains cost extra upkeep)
       const len = Math.hypot(dirx, diry);
       const tMul = terrain.speedMul(c.x, c.y, p.canFly, p.canSwim);
-      // v9.2: a driven gait is a real speed gain, and it is charged for EVERY
-      // tick it is held, moving or not. Pumping your legs while standing still
-      // burns energy for nothing, so selection has to find a brain that drives
-      // the gait when it is going somewhere and lets it idle when it isn't --
-      // that pressure is the whole point, and it is why the cost is not gated
-      // on speed here.
-      const sp = realizedSpeed * (1 + GAIT_BOOST * c._gait) * (c.fear > 0.3 ? 1.15 : 1) * tMul;
+      const sp = realizedSpeed * (c.fear > 0.3 ? 1.15 : 1) * tMul;
       if (len > 1e-6) { c.vx = (dirx / len) * sp; c.vy = (diry / len) * sp; } else { c.vx = 0; c.vy = 0; }
-      if (c._gait > 0.01) c.energy -= p.upkeep * GAIT_COST * c._gait * bdt;
       let nx = clamp(c.x + c.vx * dt, 1, w - 1), ny = clamp(c.y + c.vy * dt, 1, h - 1);
       // HARD terrain constraints, axis-separated so a creature slides along an
       // obstacle instead of dead-stopping against it:
@@ -2361,7 +2283,6 @@
 
   const API = {
     makeRNG, gauss, clamp, PART, PART_TYPES, MOUTH_MODES, SINGLETON, CAPS, IN, OUT, MAX_SEGS, MAX_RADIAL,
-    O_GAIT, O_GRAB, GAIT_BOOST, GAIT_COST, GRAB_GAIN, GRAB_COST, gaitFrac, grabFrac,
     seedHerbivore, mutate, crossover, cloneGenome, countNodes, collectNodes, develop,
     signature, geneticDistance, speciesColor, hueToRGB, brainForward,
     makeWorld, makeCreature, makeTerrain, maturity, reproThreshold, separate, speciesNode, pedNode, prunePhylo, prunePed,
@@ -2372,511 +2293,7 @@
 
 </script>
 <script>
-// ===================================================================
-// GENESIS v9.2 -- ORGANIC BODY RENDERER
-// ===================================================================
-// Self-contained. Depends only on document.createElement('canvas') and the
-// ph.parts / ph.groups produced by the core's develop(). This file IS the
-// implementation that gets pasted into the renderer script -- the node-canvas
-// harness next to it drives this exact code, so what is verified here is what
-// ships, not an approximation of it.
-//
-// WHY IT IS BUILT THIS WAY
-// A creature's body is a tree of cells. Fusing every cell into one rigid
-// silhouette gives an organic shape but freezes the limbs; drawing limbs
-// separately by TYPE strands any cell hanging off a limb as a free-floating
-// fragment (this is exactly what the first prototype did, and it showed).
-// So the split is STRUCTURAL, not type-based: develop() tags every part with
-// the rigid group it belongs to -- group 0 is the torso, each limb root opens
-// a group carrying its whole subtree plus the socket it pivots on. Every group
-// is internally connected and anchored to a real torso part (asserted in t35),
-// so fusing each group independently can never orphan anything, and each limb
-// can swing about its own socket.
-//
-// CACHING
-// Baking is expensive and there can be thousands of creatures, so sprites are
-// keyed by body SHAPE (quantized part geometry) plus growth stage, not by
-// creature -- a herd of one species shares one bake. Sprites are baked in
-// neutral grey and tinted on demand, because fill colour depends on a global
-// UI colour mode that can change at any time. Both caches are LRU-capped.
-
-(function (root) {
-  'use strict';
-
-  // ---- fusion field tuning -------------------------------------------------
-  // Calibrated against how develop() actually attaches cells: a child sits at
-  // parentR + r + 2, so the soft fields must still overlap across a 2-body-unit
-  // gap at the SMALLEST cell radius (4). At reach 1.52 that is 6.1 + 6.1 = 12.2
-  // against a 10-unit centre distance, which the blur then closes into one
-  // field. Dropping reach below ~1.45 visibly shatters thin chains into beads.
-  const FUSION_REACH = 1.52;   // soft-field radius as a multiple of the cell's own radius
-  const FUSION_BLUR = 3.0;     // blur radius in BODY UNITS (scaled to px at bake time)
-  const FUSION_THRESHOLD = 72; // 0..255 alpha cutoff defining "inside"
-  const SPIKE_LEN = 2.2;       // spike/horn kernel stretch along its outward axis
-  const MAX_SPRITE = 320;      // px guard: a runaway body plan can never allocate a huge canvas
-  const MAX_DRAW_LIMBS = 10;   // per-frame drawImage cap; extra limbs stay in the bake, unused
-
-  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
-
-  // Bake resolution ladder. Sprites are baked in WORLD space (the renderer
-  // applies camera zoom afterwards), so the right resolution depends only on
-  // the creature's evolved size, not on the camera -- which means zooming
-  // never invalidates a single cached sprite. Powers of two keep the number of
-  // distinct buckets small (good cache reuse) at no worse than 1.41x resample.
-  const BODY_SPAN = 1.15;      // whole-animal reach, in multiples of ph.radius
-  const SCALE_MIN = 0.25, SCALE_MAX = 8;
-  function quantScale(target) {
-    if (!(target > 0) || !isFinite(target)) return 1;
-    const s = Math.pow(2, Math.round(Math.log2(target)));
-    return clamp(s, SCALE_MIN, SCALE_MAX);
-  }
-
-  // Manual box blur on the alpha channel only. Deliberately not ctx.filter:
-  // that is inconsistent across canvas backends and silently no-ops on some,
-  // which would turn the whole effect off without any error to notice.
-  function blurAlpha(data, w, h, radius) {
-    if (radius <= 0) return;
-    const r = radius | 0;
-    const src = new Uint8ClampedArray(data.length);
-    src.set(data);
-    for (let y = 0; y < h; y++) {
-      const row = y * w;
-      for (let x = 0; x < w; x++) {
-        let sum = 0, n = 0;
-        const x0 = x - r < 0 ? 0 : x - r, x1 = x + r >= w ? w - 1 : x + r;
-        for (let xx = x0; xx <= x1; xx++) { sum += src[(row + xx) * 4 + 3]; n++; }
-        data[(row + x) * 4 + 3] = sum / n;
-      }
-    }
-    src.set(data);
-    for (let x = 0; x < w; x++) {
-      for (let y = 0; y < h; y++) {
-        let sum = 0, n = 0;
-        const y0 = y - r < 0 ? 0 : y - r, y1 = y + r >= h ? h - 1 : y + r;
-        for (let yy = y0; yy <= y1; yy++) { sum += src[(yy * w + x) * 4 + 3]; n++; }
-        data[(y * w + x) * 4 + 3] = sum / n;
-      }
-    }
-  }
-
-  // Fuse a set of parts into one soft-edged silhouette, rendered in neutral
-  // grey with a baked volumetric shade. Returns null for an empty/degenerate
-  // set rather than throwing, so a caller can simply skip that group.
-  // `cx,cy` is the reference centre spikes point away from (the torso centroid
-  // for the torso, the socket for a limb) so a spike always juts outward.
-  function fuseSprite(parts, cx, cy, blurPx) {
-    if (!parts || !parts.length) return null;
-    const BLUR = clamp(Math.round(blurPx == null ? FUSION_BLUR : blurPx), 1, 14);
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (let i = 0; i < parts.length; i++) {
-      const p = parts[i];
-      if (!isFinite(p.x) || !isFinite(p.y)) continue;
-      const rr = Math.max(1, p.r || 4) * FUSION_REACH * (p.type === 'SPIKE' || p.type === 'HORN' ? SPIKE_LEN : 1);
-      if (p.x - rr < minX) minX = p.x - rr;
-      if (p.x + rr > maxX) maxX = p.x + rr;
-      if (p.y - rr < minY) minY = p.y - rr;
-      if (p.y + rr > maxY) maxY = p.y + rr;
-    }
-    if (!isFinite(minX)) return null;
-    const pad = BLUR + 2;
-    minX -= pad; minY -= pad; maxX += pad; maxY += pad;
-    let w = Math.ceil(maxX - minX), h = Math.ceil(maxY - minY);
-    if (w < 1 || h < 1) return null;
-    if (w > MAX_SPRITE || h > MAX_SPRITE) return null; // caller falls back to the classic renderer
-    const cv = document.createElement('canvas');
-    cv.width = w; cv.height = h;
-    const g = cv.getContext('2d');
-    if (!g) return null;
-
-    g.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < parts.length; i++) {
-      const p = parts[i];
-      if (!isFinite(p.x) || !isFinite(p.y)) continue;
-      const lx = p.x - minX, ly = p.y - minY, rr = Math.max(1, p.r || 4) * FUSION_REACH;
-      if (p.type === 'SPIKE' || p.type === 'HORN') {
-        // directional kernel: stretched along the outward axis so the fused
-        // surface grows a real point instead of another round bump
-        let ang = Math.atan2(p.y - cy, p.x - cx);
-        if (!isFinite(ang)) ang = 0;
-        g.save();
-        g.translate(lx, ly); g.rotate(ang); g.scale(SPIKE_LEN, 0.78);
-        const gr = g.createRadialGradient(0, 0, 0, 0, 0, rr);
-        gr.addColorStop(0, 'rgba(255,255,255,0.95)');
-        gr.addColorStop(0.55, 'rgba(255,255,255,0.35)');
-        gr.addColorStop(1, 'rgba(255,255,255,0)');
-        g.fillStyle = gr;
-        g.beginPath(); g.arc(0, 0, rr, 0, 6.2832); g.fill();
-        g.restore();
-      } else {
-        const gr = g.createRadialGradient(lx, ly, 0, lx, ly, rr);
-        gr.addColorStop(0, 'rgba(255,255,255,0.95)');
-        gr.addColorStop(1, 'rgba(255,255,255,0)');
-        g.fillStyle = gr;
-        g.beginPath(); g.arc(lx, ly, rr, 0, 6.2832); g.fill();
-      }
-    }
-    g.globalCompositeOperation = 'source-over';
-
-    let id;
-    try { id = g.getImageData(0, 0, w, h); } catch (e) { return null; }
-    const d = id.data;
-    blurAlpha(d, w, h, BLUR);
-
-    let inside = 0;
-    for (let i = 0; i < d.length; i += 4) {
-      const a = d[i + 3];
-      if (a < FUSION_THRESHOLD) { d[i + 3] = 0; continue; }
-      inside++;
-      // neutral grey base; tinting multiplies over this, so a bright base
-      // keeps the tint close to the requested colour
-      const edge = clamp((a - FUSION_THRESHOLD) / (255 - FUSION_THRESHOLD), 0, 1);
-      d[i] = 235; d[i + 1] = 235; d[i + 2] = 235;
-      d[i + 3] = Math.round(255 * Math.min(1, 0.62 + edge * 0.38));
-    }
-    if (!inside) return null;
-    g.putImageData(id, 0, 0);
-
-    // volumetric shade, clipped to the silhouette
-    g.save();
-    g.globalCompositeOperation = 'source-atop';
-    const shade = g.createLinearGradient(0, 0, w * 0.65, h * 0.95);
-    shade.addColorStop(0, 'rgba(255,255,255,0.26)');
-    shade.addColorStop(0.48, 'rgba(255,255,255,0)');
-    shade.addColorStop(1, 'rgba(0,0,0,0.30)');
-    g.fillStyle = shade;
-    g.fillRect(0, 0, w, h);
-    g.restore();
-
-    return { cv, ox: minX, oy: minY, w, h, inside };
-  }
-
-  // ---- body bake -----------------------------------------------------------
-  // Splits ph.parts by group, bakes the torso in body space and every limb in
-  // its own socket space (pivot at origin, limb pointing along +x), so a limb
-  // is animated by rotate(baseAngle + swing) and extended by scaling x.
-  // `S` is the bake resolution: baked pixels per body unit. Everything is
-  // pre-multiplied by it, so drawing the result at scale ~1 lands at the
-  // creature's true world size with no resampling blur.
-  function bakeBody(ph, S) {
-    const parts = ph && ph.parts, groups = ph && ph.groups;
-    if (!parts || !parts.length || !groups || !groups.length) return null;
-    if (!(S > 0) || !isFinite(S)) S = 1;
-
-    const byGroup = [];
-    for (let i = 0; i < groups.length; i++) byGroup.push([]);
-    for (let i = 0; i < parts.length; i++) {
-      const lg = parts[i].lg | 0;
-      if (lg >= 0 && lg < byGroup.length) byGroup[lg].push(parts[i]);
-      else byGroup[0].push(parts[i]); // defensive: an untagged part is torso
-    }
-    const torsoParts = byGroup[0];
-    if (!torsoParts.length) return null;
-
-    // unscaled centroid and extent first: these stay in body units, because the
-    // draw step needs them to place the sprite relative to ph.radius
-    let tcx = 0, tcy = 0;
-    for (let i = 0; i < torsoParts.length; i++) { tcx += torsoParts[i].x; tcy += torsoParts[i].y; }
-    tcx /= torsoParts.length; tcy /= torsoParts.length;
-    // FULL extent (limbs included), not just the torso: normalizing on the
-    // torso alone lets a creature with a small body and long limbs be drawn
-    // several times its own ph.radius, which is exactly what happened in the
-    // first pass. Measuring the whole animal keeps a many-limbed body plan
-    // honest -- mass spread into limbs means a proportionally smaller torso.
-    let ext = 0;
-    for (let i = 0; i < parts.length; i++) {
-      const p = parts[i];
-      const d = Math.hypot(p.x - tcx, p.y - tcy) + p.r;
-      if (d > ext) ext = d;
-    }
-    if (!(ext > 0)) ext = 1;
-
-    const blurPx = FUSION_BLUR * S;
-    const scaled = (p, x, y) => ({ type: p.type, r: p.r * S, x: x * S, y: y * S });
-
-    const torso = fuseSprite(torsoParts.map(p => scaled(p, p.x - tcx, p.y - tcy)), 0, 0, blurPx);
-    if (!torso) return null;
-
-    // socket radii, so a limb's field can be grown INTO the body it hangs from
-    // (see below). t35 guarantees every limb pivot coincides exactly with a
-    // torso part centre, so this lookup always resolves.
-    const socketR = new Map();
-    for (let i = 0; i < torsoParts.length; i++) {
-      const p = torsoParts[i];
-      const k = p.x + ',' + p.y;
-      const cur = socketR.get(k);
-      if (cur === undefined || p.r > cur) socketR.set(k, p.r);
-    }
-
-    const limbs = [];
-    for (let gi = 1; gi < groups.length; gi++) {
-      const src = byGroup[gi];
-      if (!src.length) continue;
-      const gr = groups[gi];
-      const ca = Math.cos(-gr.ang), sa = Math.sin(-gr.ang);
-      // into socket space: translate the pivot to the origin, then rotate the
-      // limb's base direction onto +x, so animation is rotate-then-scale-x
-      const local = new Array(src.length);
-      for (let i = 0; i < src.length; i++) {
-        const p = src[i], dx = p.x - gr.px, dy = p.y - gr.py;
-        local[i] = scaled(p, dx * ca - dy * sa, dx * sa + dy * ca);
-      }
-      // JOINT SEAM FIX. Torso and limb are thresholded as separate fields, so
-      // the sum that would have bridged the 2-unit attachment gap never
-      // happens and the limb visibly detaches from the body. Adding the socket
-      // cell itself to the limb's field makes the limb's proximal end grow
-      // back into the torso, so the two sprites physically overlap at the
-      // joint. It is drawn twice in the same colour, which is invisible, and
-      // it sits exactly on the pivot so limb rotation leaves it in place.
-      const sr = socketR.get(gr.px + ',' + gr.py);
-      if (sr !== undefined) local.push({ type: 'CORE', r: sr * S, x: 0, y: 0 });
-      // spikes on a limb point away from the socket, i.e. away from the origin.
-      // Limbs get a slightly wider bridge than the torso: they are thin tapering
-      // chains where a late, heavily-tapered segment can fall just short of the
-      // previous one's field and bead off the end.
-      const sp = fuseSprite(local, 0, 0, blurPx * 1.35);
-      if (!sp) continue;
-      limbs.push({
-        cv: sp.cv, ox: sp.ox, oy: sp.oy, w: sp.w, h: sp.h,
-        px: (gr.px - tcx) * S, py: (gr.py - tcy) * S,
-        ang: gr.ang, type: gr.type,
-      });
-    }
-
-    // Draw order for limbs, biggest first. A body plan can legally carry 30+
-    // limb groups; past a handful the small ones are visually redundant but
-    // still cost a full drawImage each, so the draw step takes the largest N
-    // and this ordering is what makes "largest" cheap to find at draw time.
-    limbs.sort((a, b) => (b.w * b.h) - (a.w * a.h));
-
-    // torso sprite is centred on the torso centroid, so the draw step only has
-    // to place the centroid -- no separate cx/cy bookkeeping at draw time
-    return { torso, limbs, ext, S };
-  }
-
-  // ---- caches --------------------------------------------------------------
-  // Body key: quantized geometry, so two creatures whose parts differ by less
-  // than a pixel share a bake. Growth is folded in because a juvenile is a
-  // genuinely different shape, not just a smaller draw.
-  function bodyKey(ph) {
-    const parts = ph.parts;
-    let hA = 0x811c9dc5, hB = 0x01000193;
-    for (let i = 0; i < parts.length; i++) {
-      const p = parts[i];
-      const a = (p.x * 2) | 0, b = (p.y * 2) | 0, r = (p.r * 2) | 0, t = p.type.charCodeAt(0), l = p.lg | 0;
-      hA = ((hA ^ a) * 16777619) >>> 0;
-      hA = ((hA ^ b) * 16777619) >>> 0;
-      hB = ((hB ^ r) * 16777619) >>> 0;
-      hB = ((hB ^ (t + l * 31)) * 16777619) >>> 0;
-    }
-    return hA.toString(36) + '_' + hB.toString(36) + '_' + parts.length;
-  }
-
-  function lru(map, cap) {
-    if (map.size <= cap) return;
-    const drop = map.size - cap;
-    let i = 0;
-    for (const k of map.keys()) { map.delete(k); if (++i >= drop) break; }
-  }
-
-  const bakeCache = new Map();
-  const tintCache = new Map();
-  const BAKE_CAP = 220, TINT_CAP = 500;
-
-  // Baking costs single-digit milliseconds, which is fine amortised but not
-  // fine if a hundred never-before-seen body plans scroll into view on one
-  // frame. A per-frame budget spreads that cost out; a creature whose bake is
-  // deferred simply draws with the classic renderer for a frame or two, which
-  // is invisible in motion and can never stall the frame.
-  let cacheEpoch = 0;
-  let bakeBudget = 3;
-  function beginFrame(budget) { bakeBudget = budget == null ? 3 : budget; }
-
-  function getBake(ph) {
-    if (!ph) return null;
-    // Per-phenotype memo. This is the difference between a hash of up to 64
-    // parts every frame for every creature and a single property read, which
-    // at a few thousand creatures is the difference between a playable frame
-    // and a slideshow. It needs no invalidation logic: the core hands out a
-    // BRAND NEW ph object whenever a body actually changes (growth refresh,
-    // cell death), so a stale memo is unreachable by construction.
-    if (ph._ob !== undefined && ph._obE === cacheEpoch) return ph._ob;
-    // pre-compute the unscaled torso extent to pick a bake resolution; this is
-    // the same value bakeBody recomputes, kept cheap by only touching torso
-    // parts, and it is what makes the key resolution-aware
-    const parts = ph.parts;
-    if (!parts || !parts.length) return null;
-    let n = 0, cx = 0, cy = 0;
-    for (let i = 0; i < parts.length; i++) if ((parts[i].lg | 0) === 0) { cx += parts[i].x; cy += parts[i].y; n++; }
-    if (!n) return null;
-    cx /= n; cy /= n;
-    let ext = 0;
-    for (let i = 0; i < parts.length; i++) {
-      const p = parts[i];
-      const d = Math.hypot(p.x - cx, p.y - cy) + p.r;
-      if (d > ext) ext = d;
-    }
-    if (!(ext > 0)) ext = 1;
-
-    // BODY_SPAN: the whole animal, limbs included, spans this many ph.radius
-    // from its torso centre. 1.15 keeps a plain 4-legged body reading at about
-    // the same on-screen size as the pre-v9.2 ellipse-and-sticks renderer.
-    let S = quantScale(((ph.radius || 8) * BODY_SPAN) / ext);
-    const base = bodyKey(ph);
-    // step the resolution down if the body plan is so sprawling that the bake
-    // would exceed the sprite guard; falling back to a coarser sprite is far
-    // better than dropping to the classic renderer for one big creature
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const k = base + '@' + S;
-      let b = bakeCache.get(k);
-      if (b !== undefined) { bakeCache.delete(k); bakeCache.set(k, b); if (b) { ph._ob = b; ph._obE = cacheEpoch; return b; } }
-      else {
-        // Budget exhaustion is NOT memoised: this body is fine, it just has to
-        // wait for a later frame. Memoising the null here would permanently
-        // demote a perfectly good creature to the classic renderer.
-        if (bakeBudget <= 0) return null;
-        bakeBudget--;
-        b = bakeBody(ph, S) || null;
-        bakeCache.set(k, b);
-        lru(bakeCache, BAKE_CAP);
-        if (b) { b.key = k; ph._ob = b; ph._obE = cacheEpoch; return b; }
-      }
-      if (S <= SCALE_MIN) break;
-      S = Math.max(SCALE_MIN, S / 2);
-    }
-    ph._ob = null; ph._obE = cacheEpoch; // genuinely unbakeable: stop retrying it every frame
-    return null;
-  }
-
-  // Tint a grey sprite to `fill` by multiplying, then restoring the original
-  // alpha. Two composite passes, done once per (sprite, colour) pair.
-  function tintSprite(sp, fill) {
-    const cv = document.createElement('canvas');
-    cv.width = sp.w; cv.height = sp.h;
-    const g = cv.getContext('2d');
-    if (!g) return null;
-    g.drawImage(sp.cv, 0, 0);
-    g.globalCompositeOperation = 'multiply';
-    g.fillStyle = fill;
-    g.fillRect(0, 0, sp.w, sp.h);
-    g.globalCompositeOperation = 'destination-in';
-    g.drawImage(sp.cv, 0, 0);
-    g.globalCompositeOperation = 'source-over';
-    return cv;
-  }
-
-  // Same memo trick as getBake, keyed on the phenotype AND the fill string, so
-  // switching colour mode or a species changing colour re-resolves on the next
-  // frame while the steady state costs one string compare.
-  function getTinted(ph, bake, fill) {
-    if (ph._otFill === fill && ph._ot !== undefined && ph._otBake === bake && ph._otE === cacheEpoch) return ph._ot;
-    const k = bake.key + '|' + fill;
-    let t = tintCache.get(k);
-    if (t !== undefined) { tintCache.delete(k); tintCache.set(k, t); }
-    else {
-      t = { torso: tintSprite(bake.torso, fill), limbs: bake.limbs.map(l => tintSprite(l, fill)) };
-      tintCache.set(k, t);
-      lru(tintCache, TINT_CAP);
-    }
-    ph._otFill = fill; ph._otBake = bake; ph._ot = t; ph._otE = cacheEpoch;
-    return t;
-  }
-
-  // Per-phenotype memos above hold direct references, so clearing the shared
-  // maps alone would not actually invalidate anything. Bumping the epoch does:
-  // every memo carries the epoch it was written under and is ignored once it
-  // no longer matches, with no need to walk live creatures.
-  function clearCaches() { bakeCache.clear(); tintCache.clear(); cacheEpoch++; }
-
-  // ---- draw ----------------------------------------------------------------
-  // Draws the fused body into ctx, assuming the caller has already translated
-  // to the creature's ground position and applied any facing flip. Returns
-  // false if it could not draw, so the caller falls back to the classic
-  // renderer for this creature instead of leaving a hole in the frame.
-  //
-  // pose:
-  //   gait   0..1  how hard the brain is driving its limbs (O_GAIT)
-  //   grab   0..1  how far it is extending them (O_GRAB)
-  //   phase  running animation phase
-  //   bodyY  vertical offset of the body centre above the ground
-  //   lod    0..2  detail level from the caller; below 2 the limbs are skipped
-  //                (at that distance they are a couple of pixels each and cost
-  //                one drawImage apiece, which is the wrong trade)
-  function drawOrganic(ctx, ph, fill, pose) {
-    const bake = getBake(ph);
-    if (!bake) return false;
-    const tint = getTinted(ph, bake, fill);
-    if (!tint || !tint.torso) return false;
-
-    const gait = clamp(pose.gait || 0, 0, 1);
-    const grab = clamp(pose.grab || 0, 0, 1);
-    const phase = pose.phase || 0;
-    const lod = pose.lod == null ? 2 : pose.lod;
-    const nLimbs = lod >= 2 ? Math.min(bake.limbs.length, MAX_DRAW_LIMBS) : 0;
-    const rt = Math.sqrt(clamp(ph.elong || 1, 0.2, 6));
-    // world units per baked pixel: near 1 by construction (see quantScale), so
-    // the sprite is drawn at roughly its native resolution
-    const k = (((ph.radius || 8) * BODY_SPAN) / bake.ext) / bake.S;
-    const kx = k * rt, ky = k / rt;
-
-    ctx.save();
-    ctx.translate(0, pose.bodyY || 0);
-    ctx.scale(kx, ky);
-
-    // limbs behind the body first, limbs in front afterwards, so the body
-    // reads as solid rather than as a flat sticker
-    for (let pass = nLimbs ? 0 : 1; pass < 2; pass++) {
-      if (pass === 1) {
-        ctx.drawImage(tint.torso, bake.torso.ox, bake.torso.oy);
-      }
-      for (let i = 0; i < nLimbs; i++) {
-        const L = bake.limbs[i], img = tint.limbs[i];
-        if (!img) continue;
-        const behind = Math.sin(L.ang) < 0;           // pointing away from the viewer
-        if ((pass === 0) !== behind) continue;
-        // per-type motion. Amplitude is mostly gait: an idle brain barely
-        // moves its limbs, a driving one works them hard, which is what makes
-        // "learning to walk" visible rather than just a number in a panel.
-        let swing, ext = 1;
-        switch (L.type) {
-          case 'LEG':
-            swing = Math.sin(phase + i * 1.7) * (0.10 + 0.62 * gait);
-            ext = 1 + 0.30 * grab;
-            break;
-          case 'FIN':
-            swing = Math.sin(phase * 1.35 + i * 1.1) * (0.10 + 0.45 * gait);
-            ext = 1 + 0.12 * grab;
-            break;
-          case 'WING':
-            swing = Math.sin(phase * 1.6 + i * 0.8) * (0.18 + 0.78 * gait);
-            ext = 1 + 0.10 * grab;
-            break;
-          default: // TAIL
-            swing = Math.sin(phase * 0.85 + i * 0.6) * (0.12 + 0.34 * gait);
-            ext = 1 + 0.18 * grab;
-            break;
-        }
-        ctx.save();
-        ctx.translate(L.px, L.py);
-        ctx.rotate(L.ang + swing);
-        ctx.scale(ext, 1);
-        ctx.drawImage(img, L.ox, L.oy);
-        ctx.restore();
-      }
-    }
-    ctx.restore();
-    return true;
-  }
-
-  const API = {
-    drawOrganic, bakeBody, fuseSprite, bodyKey, clearCaches, getBake, beginFrame,
-    _caches: { bake: bakeCache, tint: tintCache },
-    FUSION_REACH, FUSION_BLUR, FUSION_THRESHOLD, SPIKE_LEN,
-  };
-  if (typeof module !== 'undefined' && module.exports) module.exports = API;
-  else root.GenesisOrganic = API;
-})(typeof window !== 'undefined' ? window : globalThis);
-
-/* ===== GENESIS v9 — isometric pixel renderer (browser) — needs GenesisCore ===== */
+/* ===== GENESIS v3 — isometric pixel renderer (browser) — needs GenesisCore ===== */
 (function () {
   'use strict';
   const C = window.GenesisCore;
@@ -2923,14 +2340,6 @@
   const PIXEL = 2;
 
   let world, selected = null, running = true, speed = 12, colorMode = 'diet';
-  // v9.2: organic (fused-cell) bodies. ON by default; the toggle exists so the
-  // pre-v9.2 renderer stays one click away, and so does a way out if the fused
-  // path misbehaves on some GPU/browser combination. ORGANIC.fails counts
-  // creatures that fell back this session -- a persistently rising number is
-  // the signal that something is wrong with the bake, not with one creature.
-  const ORGANIC = window.GenesisOrganic || null;
-  let organicOn = !!ORGANIC;
-  let organicFails = 0, organicDrawn = 0;
   let terrainMip = null, decorations = [];
   let heightGrid = null, levelGrid = null, shadeGrid = null, biomeTile = null;
   let seaRGB = [23, 56, 95];
@@ -3392,33 +2801,9 @@
     const phase = T * (5 + Math.hypot(c.vx, c.vy) * 0.1) + c.id;
     const aqua = ph.aquaticForm;
 
-    // ---- v9.2 organic body -------------------------------------------------
-    // The fused-cell body replaces the ellipse-plus-appendages drawing of the
-    // torso, limbs, tail, spikes and horns -- everything whose SHAPE comes out
-    // of the genome tree. The head, eyes, mouth, neck, energy core and gland
-    // glow are still drawn on top, because those are readability features
-    // (what is it, is it hungry, is it venomous) rather than body shape, and
-    // burying them inside the silhouette would make the world harder to read.
-    //
-    // Any failure at all -- no sprite, a canvas the browser refused, a throw
-    // from deep inside the bake -- falls through to the pre-v9.2 renderer for
-    // that creature. A creature is never skipped and the frame never breaks.
-    let organic = false;
-    if (organicOn && ORGANIC) {
-      try {
-        organic = ORGANIC.drawOrganic(bufx, ph, fill, {
-          gait: c._gait || 0, grab: c._grab || 0, phase: phase, bodyY: bodyY, lod: lod,
-        });
-      } catch (e) {
-        organic = false;
-        if (organicFails === 0) console.warn('organic body renderer failed, falling back:', e);
-      }
-      if (organic) organicDrawn++; else organicFails++;
-    }
-
     // wings (behind) -- an aquatic body plan cannot have them: the same tissue
     // budget developed as fin surface instead, so they render as fins below
-    const wings = organic ? 0 : (aqua ? 0 : (counts.WING || 0));
+    const wings = aqua ? 0 : (counts.WING || 0);
     for (let i = 0; i < wings; i++) {
       const flap = Math.sin(phase * 1.5 + i) * 0.5;
       bufx.save(); bufx.translate(-BX * 0.3, bodyY); bufx.rotate(-0.4 + flap);
@@ -3431,7 +2816,7 @@
     // that tapers in width toward the tip; a plain single-segment tail reuses
     // the exact original single-curve draw so every pre-v8.3 creature (and
     // every creature whose tail segs never mutated above 1) is unchanged.
-    const tailSegs = organic ? 0 : (counts.TAIL || 0);
+    const tailSegs = counts.TAIL || 0;
     if (tailSegs === 1) {
       const sw = Math.sin(phase) * 0.3;
       bufx.strokeStyle = fill; bufx.lineWidth = Math.max(1, BY * 0.5); bufx.lineCap = 'round';
@@ -3453,7 +2838,7 @@
       }
     }
     // legs: length follows legLen, and they actually reach the ground
-    const legs = organic ? 0 : clamp(counts.LEG || 0, 0, 6);
+    const legs = clamp(counts.LEG || 0, 0, 6);
     for (let i = 0; i < legs; i++) {
       const t = legs === 1 ? 0 : (i / (legs - 1) - 0.5);
       const lx = t * BX * 1.25, step = Math.sin(phase + i * 1.5) * (1 + LL);
@@ -3461,7 +2846,7 @@
       bufx.beginPath(); bufx.moveTo(lx, bodyY + BY * 0.55); bufx.lineTo(lx + step, 0); bufx.stroke();
     }
     // fins: aquatic plans also express their wing parts here
-    const fins = organic ? 0 : (counts.FIN || 0) + (aqua ? (counts.WING || 0) : 0);
+    const fins = (counts.FIN || 0) + (aqua ? (counts.WING || 0) : 0);
     for (let i = 0; i < fins; i++) {
       const wob = Math.sin(phase * 1.3 + i) * 0.3;
       const scaleF = 0.6 + 0.5 * ((i % 3) / 2);          // visibly different sizes
@@ -3472,7 +2857,7 @@
       bufx.closePath(); bufx.fill(); bufx.restore();
     }
     // dorsal fin for streamlined swimmers
-    if (!organic && aqua && ph.elong > 1.4) {
+    if (aqua && ph.elong > 1.4) {
       bufx.fillStyle = 'rgba(70,160,225,0.75)';
       bufx.beginPath(); bufx.moveTo(-BX * 0.1, bodyY - BY * 0.8); bufx.lineTo(BX * 0.25, bodyY - BY * 1.5 - R * 0.2);
       bufx.lineTo(BX * 0.45, bodyY - BY * 0.8); bufx.closePath(); bufx.fill();
@@ -3486,13 +2871,11 @@
       bufx.quadraticCurveTo((headX + BX * 0.3 * dirS) * 0.5, (bodyY + headY) * 0.5 - R * 0.15, headX, headY);
       bufx.stroke();
     }
-    // body -- replaced entirely by the fused silhouette in organic mode
-    if (!organic) {
-      const grd = bufx.createRadialGradient(-BX * 0.3, bodyY - BY * 0.3, BX * 0.2, 0, bodyY, BX * 1.1);
-      grd.addColorStop(0, lighten(fill, 30)); grd.addColorStop(1, fill);
-      bufx.fillStyle = grd; bufx.beginPath(); bufx.ellipse(0, bodyY, BX * 0.98, BY * 0.9, 0, 0, 7); bufx.fill();
-      bufx.strokeStyle = 'rgba(0,0,0,0.4)'; bufx.lineWidth = 1; bufx.stroke();
-    }
+    // body
+    const grd = bufx.createRadialGradient(-BX * 0.3, bodyY - BY * 0.3, BX * 0.2, 0, bodyY, BX * 1.1);
+    grd.addColorStop(0, lighten(fill, 30)); grd.addColorStop(1, fill);
+    bufx.fillStyle = grd; bufx.beginPath(); bufx.ellipse(0, bodyY, BX * 0.98, BY * 0.9, 0, 0, 7); bufx.fill();
+    bufx.strokeStyle = 'rgba(0,0,0,0.4)'; bufx.lineWidth = 1; bufx.stroke();
     // head
     if (NK > 0.15) {
       bufx.fillStyle = lighten(fill, 12);
@@ -3512,14 +2895,14 @@
       bufx.restore(); selRing(c); return;
     }
     // spikes (along the back)
-    const spikes = organic ? 0 : clamp(counts.SPIKE || 0, 0, 8);
+    const spikes = clamp(counts.SPIKE || 0, 0, 8);
     bufx.fillStyle = '#ece0c6';
     for (let i = 0; i < spikes; i++) {
       const t = spikes === 1 ? 0 : i / (spikes - 1); const ax = (t - 0.5) * BX * 1.5, ay = bodyY - BY * 0.72;
       bufx.beginPath(); bufx.moveTo(ax - 2, ay + 3); bufx.lineTo(ax + 2, ay + 3); bufx.lineTo(ax, ay - R * 0.5 - 2); bufx.closePath(); bufx.fill();
     }
     // horns (on the head)
-    const horns = organic ? 0 : clamp(counts.HORN || 0, 0, 2);
+    const horns = clamp(counts.HORN || 0, 0, 2);
     bufx.strokeStyle = '#d8c89a'; bufx.lineWidth = Math.max(1.4, headR * 0.3); bufx.lineCap = 'round';
     for (let i = 0; i < horns; i++) {
       const hx = headX + (facing === 0 ? (i ? -headR * 0.45 : headR * 0.45) : headR * (0.2 + i * 0.5));
@@ -3645,10 +3028,6 @@
     for (const cz of world.carrion) { const [sx, sy] = iso(cz.x, cz.y, levelAt(cz.x, cz.y)); if (!vis(sx, sy, 8)) continue; bufx.fillStyle = 'rgba(122,92,67,' + Math.min(1, cz.decay / 10) + ')'; bufx.beginPath(); bufx.arc(sx, sy, 2.5, 0, 7); bufx.fill(); }
     // Vegetation is baked into the terrain raster, so the only depth-sorted
     // per-frame geometry is the creatures themselves.
-    // v9.2: cap how many never-before-seen body plans may be baked this frame.
-    // Everything else falls back to the classic draw for a frame or two, which
-    // keeps a mass of new species scrolling into view from stalling the frame.
-    if (organicOn && ORGANIC) ORGANIC.beginFrame(3);
     const list = [];
     for (const c of world.creatures) { c._sx = null; const [sx, sy] = iso(c.x, c.y, levelAt(c.x, c.y)); if (!vis(sx, sy, c.ph.radius + 20)) continue; list.push({ d: c.x + c.y, cr: c }); }
     list.sort((a, b) => a.d - b.d);
@@ -3836,16 +3215,6 @@
   $('mut').addEventListener('input', e => { $('mutv').textContent = (+e.target.value).toFixed(2); if (world) world.params.mutationRate = +e.target.value; });
   $('plant').addEventListener('input', e => { $('plantv').textContent = e.target.value; if (world) world.params.plantRate = +e.target.value; });
   $('cmode').addEventListener('change', e => colorMode = e.target.value);
-  // v9.2: organic-body toggle. Disabled outright (and forced off) if the
-  // organic module failed to load, so the checkbox can never promise something
-  // the renderer cannot deliver.
-  {
-    const ob = $('f_organic');
-    if (ob) {
-      if (!ORGANIC) { ob.checked = false; ob.disabled = true; organicOn = false; }
-      ob.addEventListener('change', e => { organicOn = !!e.target.checked && !!ORGANIC; });
-    }
-  }
   $('tscale').addEventListener('input', e => { $('tscalev').textContent = (+e.target.value).toFixed(3); if (world) world.params.timeScale = +e.target.value; });
   for (const id of ['f_brains', 'f_day', 'f_season', 'f_tox', 'f_climate']) $(id).addEventListener('change', () => { if (world) world.flags = flags(); });
   window.addEventListener('resize', () => { resizeBuffers(); });
