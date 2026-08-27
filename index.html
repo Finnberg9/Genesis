@@ -24,6 +24,8 @@
   aside{width:362px;flex:0 0 362px;height:100vh;overflow-y:auto;background:var(--bg);border-left:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:12px;}
   aside::-webkit-scrollbar{width:8px}aside::-webkit-scrollbar-thumb{background:#143430;border-radius:4px}
   .card{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:12px;}
+  .card.brief{border-color:#2f7d74;background:linear-gradient(180deg,rgba(53,224,216,.09),rgba(6,18,17,.5));}
+  .card.brief p{margin:0;font-size:12.5px;line-height:1.6;color:var(--ink);}
   .card h2{margin:0 0 8px;font-size:10.5px;letter-spacing:1.5px;color:var(--dim);font-weight:600;text-transform:uppercase;}
   .r{display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:2px 0;border-bottom:1px dotted rgba(111,146,140,.13);}
   .r span{color:var(--dim)}.r b{color:var(--ink);font-weight:600;text-align:right}
@@ -75,25 +77,31 @@
     <canvas id="world"></canvas>
   </div>
   <aside>
-    <div class="card"><h2>live readout</h2><div id="hud"></div></div>
-    <div class="card"><h2>evolutionary history</h2><canvas id="charts"></canvas></div>
-    <div class="card"><h2>mortality - why they die</h2><div id="deaths"></div></div>
-    <div class="card"><h2>chronicle</h2><div id="records"></div><div class="chronwrap" id="chronicle"></div></div>
-    <div class="card"><h2>specimen inspector</h2><div id="inspect"><div class="dim">click a creature to inspect its genome & lineage</div></div></div>
+    <div class="card brief">
+      <p>You are the controller of Genesis. It is your job to design a functional
+      ecosystem that can maintain itself without reaching extinction.</p>
+    </div>
     <div class="card">
-      <h2>systems (toggle to isolate)</h2>
+      <h2>control panel</h2>
       <div class="toggles">
         <label><input type="checkbox" id="f_brains" checked> neural brains</label>
         <label><input type="checkbox" id="f_day"> day / night</label>
         <label><input type="checkbox" id="f_season" checked> seasons</label>
         <label><input type="checkbox" id="f_tox" checked> toxins</label>
         <label><input type="checkbox" id="f_climate" checked> climate drift</label>
+        <label title="off = asexual budding; on = offspring genome is a crossover of two parents"><input type="checkbox" id="f_sex" checked> sexual reproduction</label>
         <label title="v9: bodies are drawn as fused cell clusters with jointed limbs. Off = the older ellipse-and-appendages renderer."><input type="checkbox" id="f_organic" checked> organic bodies</label>
       </div>
       <div class="sliders">
-        <div class="ctl">mutation rate <b id="mutv">0.60</b><input id="mut" type="range" min="0.1" max="1" step="0.01" value="0.6"></div>
-        <div class="ctl">time scale (yr speed) <b id="tscalev">0.100</b><input id="tscale" type="range" min="0.01" max="1" step="0.01" value="0.1"></div>
-        <div class="ctl">plant regrowth <b id="plantv">200</b><input id="plant" type="range" min="10" max="900" step="10" value="200"></div>
+        <div class="ctl" title="chance each gene mutates per birth. Live.">mutation rate <b id="mutv">0.60</b><input id="mut" type="range" min="0.1" max="1" step="0.01" value="0.6"></div>
+        <div class="ctl" title="how fast biological time runs against wall time. Live.">time scale (yr speed) <b id="tscalev">0.100</b><input id="tscale" type="range" min="0.01" max="1" step="0.01" value="0.1"></div>
+        <div class="ctl" title="plant spawn attempts per biological second. Live.">plant regrowth <b id="plantv">200</b><input id="plant" type="range" min="10" max="900" step="10" value="200"></div>
+        <div class="ctl" title="energy in one plant before biome multipliers. Live: affects newly grown plants.">plant energy <b id="pev">30</b><input id="pe" type="range" min="5" max="120" step="5" value="30"></div>
+        <div class="ctl" title="length of one day/night cycle in biological units. Live.">day length <b id="daylv">6</b><input id="dayl" type="range" min="1" max="40" step="1" value="6"></div>
+        <div class="ctl" title="length of one year, which drives the seasons. Live.">season length <b id="yearlv">70</b><input id="yearl" type="range" min="10" max="300" step="10" value="70"></div>
+        <div class="ctl" title="how long a corpse lies there before it is gone. Live: applies to corpses made from now on.">corpse lifespan <b id="clifev">12</b><input id="clife" type="range" min="2" max="60" step="1" value="12"></div>
+        <div class="ctl" title="multiplier on how much energy a corpse is worth to a scavenger. Live: applies to corpses made from now on.">corpse yield <b id="cyv">1.0</b><input id="cy" type="range" min="0.2" max="4" step="0.1" value="1"></div>
+        <div class="ctl" title="how far founders are pre-mutated apart from each other. 0 = ten copies of one animal. Takes effect on reset.">founder diversity <b id="fdv">0.00</b><input id="fd" type="range" min="0" max="1" step="0.05" value="0"></div>
       </div>
       <div class="field">color by
         <select id="cmode"><option value="diet">diet</option><option value="species">species</option><option value="hue">display hue</option></select>
@@ -112,6 +120,11 @@
         <span><i style="background:#b070d0"></i>toxin zone</span>
       </div>
     </div>
+    <div class="card"><h2>live readout</h2><div id="hud"></div></div>
+    <div class="card"><h2>evolutionary history</h2><canvas id="charts"></canvas></div>
+    <div class="card"><h2>mortality - why they die</h2><div id="deaths"></div></div>
+    <div class="card"><h2>chronicle</h2><div id="records"></div><div class="chronwrap" id="chronicle"></div></div>
+    <div class="card"><h2>specimen inspector</h2><div id="inspect"><div class="dim">click a creature to inspect its genome & lineage</div></div></div>
     <div class="dim" style="font-size:10.5px;line-height:1.5">
       Isometric island in open ocean, new every load. Drag to pan, scroll or +/− to zoom, click a creature to inspect. Emergent, no fitness function; reproduction is mating-only. Bodies are solid and cannot stack. <b>Body plan</b> is evolvable — elongation, neck and leg length each buy something and cost something — so silhouettes drift toward serpents, waders, browsers and shark forms. A body commits to one medium: fins and wings draw on the same budget, so nothing both swims and flies. <b style="color:var(--cyan)">Two larders are locked behind anatomy</b>: sea-floor growth (2.4x) needs real fins, and alpine growth (up to 3.2x) sits above climbable ground — you may only step up one block, so the summit belongs to whatever evolves wings.
     </div>
@@ -1477,9 +1490,17 @@
       params: {
         mutationRate: opts.mutationRate != null ? opts.mutationRate : 0.18,
         plantRate: opts.plantRate != null ? opts.plantRate : 90,
-        plantEnergy: 30, startPop: opts.startPop || 140,
+        plantEnergy: opts.plantEnergy != null ? opts.plantEnergy : 30,
+        startPop: opts.startPop || 140,
         startPlants: opts.startPlants != null ? opts.startPlants : 500,
-        dayLen: 6, yearLen: 70, timeScale: opts.timeScale != null ? opts.timeScale : 0.01,
+        dayLen: opts.dayLen != null ? opts.dayLen : 6,
+        yearLen: opts.yearLen != null ? opts.yearLen : 70,
+        timeScale: opts.timeScale != null ? opts.timeScale : 0.01,
+        // v9.3 tunables. All three were already implicit constants; exposing
+        // them changes no default behaviour when left at the values below.
+        carrionLife: opts.carrionLife != null ? opts.carrionLife : 12,   // bt-units a corpse persists
+        carrionYield: opts.carrionYield != null ? opts.carrionYield : 1, // multiplier on corpse energy
+        founderDiversity: opts.founderDiversity != null ? opts.founderDiversity : 0,
       },
       flags: Object.assign({ brains: true, sexual: true, dayNight: true, seasons: true, toxins: true, climate: true }, opts.flags || {}),
       species: new Map(), nextSpecies: 0,
@@ -1537,8 +1558,15 @@
       }
       colonies.push([cxw, cyw]);
     }
+    // v9.3: founderDiversity pre-mutates each founder before it is born. At 0
+    // every founder is the same seed herbivore (the pre-v9.3 behaviour exactly);
+    // turned up, the world starts as an already-varied gene pool instead of a
+    // monoculture that has to wait for drift to separate.
+    const _fdiv = world.params.founderDiversity || 0;
+    const _frounds = _fdiv > 0 ? 1 + ((_fdiv * 4) | 0) : 0;
     for (let i = 0; i < world.params.startPop; i++) {
-      const g = seedHerbivore(world, rng);
+      let g = seedHerbivore(world, rng);
+      for (let m = 0; m < _frounds; m++) g = mutate(world, g, rng, _fdiv);
       const col = colonies[(rng() * K) | 0];
       let x = clamp(col[0] + gauss(rng) * 160, 1, w - 1), y = clamp(col[1] + gauss(rng) * 160, 1, h - 1);
       // founders have no fins: never strand one in open water
@@ -2166,9 +2194,32 @@
         continue;
       }
 
+      // v9.3: flags.sexual has existed in the flags object since v8 but was
+      // never actually read -- reproduction was unconditionally mating-only.
+      // It is now a real switch. OFF = asexual budding: a fertile creature
+      // reproduces alone, offspring genome is its own mutated clone, so there
+      // is no crossover and no mate search. Populations grow far faster and
+      // lineages stop recombining, which is exactly the lever it looks like.
+      // The sexual path below is unchanged.
+      if (!flags.sexual && fertile && world.creatures.length + newborns.length < CAPS.POP) {
+        let litter = 1; if (p.mass < 3 && rng() < 0.6) litter = 2; if (p.mass < 1 && rng() < 0.4) litter = 3;
+        // one parent funds the whole litter, so budding is cheaper per birth
+        // than mating but costs the single parent proportionally more
+        const invest = c.energy * 0.34;
+        c.energy -= c.energy * 0.36;
+        c.reproCD = 14;
+        for (let L = 0; L < litter && world.creatures.length + newborns.length < CAPS.POP; L++) {
+          const childGenome = mutate(world, cloneGenome(c.genome), rng, params.mutationRate);
+          const baby = birth(childGenome, c, w, h, rng, invest / litter, c.lineage + 1, terrain);
+          baby.pnode = pedNode(world, c.pnode, baby);
+          newborns.push(baby);
+          c.offspringCount = (c.offspringCount || 0) + 1;
+          checkFirsts(world, baby);
+        }
+      }
       // reproduction: MATING ONLY (no self-cloning). Offspring genome = crossover
       // of both parents. Gated by maturity + energy + ~60s recovery cooldown.
-      if (fertile && mate && mate.reproCD <= 0 && world.creatures.length + newborns.length < CAPS.POP &&
+      else if (flags.sexual && fertile && mate && mate.reproCD <= 0 && world.creatures.length + newborns.length < CAPS.POP &&
           mateD < ((p.radius + mate.ph.radius + 75) ** 2)) {
         // SEXUAL: offspring genome = crossover of both parents (the normal mode in herds)
         let litter = 1; if (p.mass < 3 && rng() < 0.6) litter = 2; if (p.mass < 1 && rng() < 0.4) litter = 3;
@@ -2192,7 +2243,7 @@
       world._pgDirty = true;
     }
     // decay carrion (rots) & hazards (dissipate); remove consumed/expired
-    for (const cz of world.carrion) { cz.decay -= bdt; cz.e -= 0.5 * bdt; }
+    for (const cz of world.carrion) { cz.decay -= bdt; cz.e -= (cz.life ? cz.e / (cz.life * 3) : 0.5) * bdt; }
     world.carrion = world.carrion.filter(cz => !cz.dead && cz.decay > 0 && cz.e > 0.5);
     for (const hz of world.hazards) hz.decay -= bdt;
     world.hazards = world.hazards.filter(hz => hz.decay > 0);
@@ -2252,7 +2303,21 @@
   function dropCarrion(world, c) {
     // toxic corpse -> transient hazard zone (an avoided niche)
     if (c.ph.toxin > 0.05) world.hazards.push({ x: c.x, y: c.y, r: 30 + c.ph.toxin * 20, strength: 6 + c.ph.toxin * 10, decay: 8 + c.ph.toxin * 4 });
-    world.carrion.push({ x: c.x, y: c.y, e: 10 + c.ph.mass * 6, decay: 18 });
+    // v9.3: a corpse is now a drawn body, not a dot, so it carries what the
+    // renderer needs -- phenotype for the silhouette, hue for the tint, the
+    // heading it fell on, and its own full lifespan so decomposition can be
+    // expressed as a 0..1 progress rather than guessed from the decay counter.
+    // Every added field is read-only to the simulation.
+    const P = world.params;
+    const life = P.carrionLife != null ? P.carrionLife : 12;
+    world.carrion.push({
+      x: c.x, y: c.y,
+      e: (20 + c.ph.mass * 14) * (P.carrionYield != null ? P.carrionYield : 1),
+      decay: life, life,
+      ph: c.ph, hue: c.ph.hue, id: c.id,
+      ang: Math.atan2(c.vy || 0, c.vx || 1),
+      cause: c.deathCause || 'unknown',
+    });
     if (world.carrion.length > 400) world.carrion.shift();
   }
   function birth(genome, parent, w, h, rng, energy, lineage, terrain) {
@@ -3573,6 +3638,159 @@
 
     bufx.restore(); selRing(c);
   }
+
+  // Same viewport cull as render()'s local `vis`, hoisted to module scope so the
+  // death and decay helpers below can be defined outside the render pass.
+  function visRect(sx, sy, pad) {
+    const vx0 = (-cam.x) / cam.z, vy0 = (-cam.y) / cam.z;
+    const vx1 = (bw - cam.x) / cam.z, vy1 = (bh - cam.y) / cam.z;
+    return sx > vx0 - pad && sx < vx1 + pad && sy > vy0 - pad - 90 && sy < vy1 + pad;
+  }
+
+  // ---------------------------------------------- v9.3 DEATH, DECAY & GHOSTS
+  // A creature used to vanish the instant it died, which reads as a bug rather
+  // than as a death. It now leaves a body that falls over, lies where it fell,
+  // rots down to a bare skeleton and only then disappears -- and for that whole
+  // window it is a large scavenging resource (see dropCarrion in the core).
+  // A grey wisp lifts off at the moment of death purely as a readability cue:
+  // with hundreds of creatures on screen there is otherwise no way to see WHERE
+  // something just died. Ghosts are wall-clock timed, not simulation-timed, so
+  // they stay legible at any time scale.
+  const ghosts = [];
+  const lastPos = new Map();      // id -> reused {x,y,r,seen}; no per-frame allocation
+  let deathFrame = 0;
+  const GHOST_MS = 3400, GHOST_MAX = 140;
+  function trackDeaths() {
+    deathFrame++;
+    for (const c of world.creatures) {
+      let e = lastPos.get(c.id);
+      if (e) { e.x = c.x; e.y = c.y; e.r = c.ph.radius; e.seen = deathFrame; }
+      else lastPos.set(c.id, { x: c.x, y: c.y, r: c.ph.radius, seen: deathFrame });
+    }
+    if (lastPos.size > world.creatures.length) {
+      const now = performance.now();
+      for (const [id, e] of lastPos) {
+        if (e.seen === deathFrame) continue;
+        if (ghosts.length < GHOST_MAX) ghosts.push({ x: e.x, y: e.y, r: e.r, t0: now });
+        lastPos.delete(id);
+      }
+    }
+  }
+
+  function drawCarrion(cz) {
+    const [sx, sy] = iso(cz.x, cz.y, levelAt(cz.x, cz.y));
+    const ph = cz.ph, R = ph ? ph.radius : 5;
+    if (!visRect(sx, sy, R * 2.5 + 20)) return;
+    const life = cz.life || 12;
+    const u = clamp(1 - cz.decay / life, 0, 1);      // 0 = just died, 1 = gone
+    const scr = R * cam.z;
+    if (!ph || !ph.parts || scr < 3.5) {             // far away: a smudge is enough
+      bufx.fillStyle = 'rgba(96,74,54,' + (0.75 * (1 - u * 0.6)).toFixed(3) + ')';
+      bufx.beginPath(); bufx.arc(sx, sy, Math.max(1.5, scr), 0, 7); bufx.fill();
+      return;
+    }
+    // Topple over the first few percent of the corpse's life, easing out. In an
+    // isometric view "lying down" reads as a modest tilt plus a vertical squash
+    // onto the ground plane, not as a 90-degree spin, which just looks like the
+    // body is standing on its head.
+    const fall = u < 0.06 ? u / 0.06 : 1;
+    const ease = 1 - (1 - fall) * (1 - fall);
+    const side = ((cz.id | 0) & 1) ? 1 : -1;
+    const lean = side * 0.46 * ease;
+    const squash = 1 - 0.42 * ease;
+    const fleshA = clamp(1 - (u - 0.46) / 0.34, 0, 1);
+    const boneA = clamp((u - 0.32) / 0.22, 0, 1) * clamp((1 - u) / 0.10, 0, 1);
+
+    bufx.save();
+    bufx.translate(sx, sy);
+    bufx.fillStyle = 'rgba(34,26,18,' + (0.32 * (1 - u * 0.45)).toFixed(3) + ')';
+    bufx.beginPath(); bufx.ellipse(0, 0, R * (1.05 + u * 0.75), R * (0.48 + u * 0.34), 0, 0, 7); bufx.fill();
+    bufx.rotate(lean);
+    bufx.scale(1, squash);
+
+    if (fleshA > 0.02) {
+      // Still the shape it had in life, but draining toward carrion brown
+      // rather than staying its living colour at lower saturation -- a dead
+      // animal should not read as a sleeping one.
+      const live = C.hueToRGB(isFinite(cz.hue) ? cz.hue : 0.1, 0.34, 0.42);
+      const k = clamp(0.25 + u * 0.75, 0, 1);          // how far gone toward rot
+      const col = [
+        Math.round(live[0] * (1 - k) + 92 * k),
+        Math.round(live[1] * (1 - k) + 76 * k),
+        Math.round(live[2] * (1 - k) + 58 * k),
+      ];
+      bufx.globalAlpha = fleshA;
+      bufx.fillStyle = 'rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')';
+      // cells are drawn slightly over-size so the corpse fuses into one mass
+      // instead of reading as loose beads
+      for (const pt of ph.parts) {
+        const pr = Math.max(0.8, pt.r * 1.22 * (1 - u * 0.30));
+        bufx.beginPath(); bufx.ellipse(pt.x, pt.y * 0.6, pr, pr * 0.82, 0, 0, 7); bufx.fill();
+      }
+      // a darker seam along the underside so the mass has some depth
+      bufx.globalAlpha = fleshA * 0.35;
+      bufx.fillStyle = 'rgb(' + Math.round(col[0] * 0.55) + ',' + Math.round(col[1] * 0.55) + ',' + Math.round(col[2] * 0.55) + ')';
+      for (const pt of ph.parts) {
+        const pr = Math.max(0.8, pt.r * 1.22 * (1 - u * 0.30));
+        bufx.beginPath(); bufx.ellipse(pt.x, pt.y * 0.6 + pr * 0.34, pr * 0.86, pr * 0.42, 0, 0, 7); bufx.fill();
+      }
+      bufx.globalAlpha = 1;
+    }
+
+    if (boneA > 0.02) {
+      let x0 = Infinity, x1 = -Infinity;
+      for (const pt of ph.parts) { if (pt.x < x0) x0 = pt.x; if (pt.x > x1) x1 = pt.x; }
+      if (!(x1 > x0)) { x0 = -R; x1 = R; }
+      const span = x1 - x0;
+      bufx.globalAlpha = boneA;
+      bufx.strokeStyle = '#e9e5d7';
+      bufx.lineWidth = Math.max(0.7, R * 0.07);
+      bufx.lineCap = 'round';
+      bufx.beginPath(); bufx.moveTo(x0, 0); bufx.lineTo(x1, 0); bufx.stroke();
+      for (let i = 0; i < 5; i++) {
+        const rx = x0 + span * (0.20 + 0.15 * i);
+        const rr = R * 0.42 * (1 - Math.abs(i - 2) * 0.16);
+        bufx.beginPath(); bufx.arc(rx, 0, rr, Math.PI * 0.18, Math.PI * 0.82); bufx.stroke();
+        bufx.beginPath(); bufx.arc(rx, 0, rr, Math.PI * 1.18, Math.PI * 1.82); bufx.stroke();
+      }
+      bufx.fillStyle = '#efebdd';
+      bufx.beginPath(); bufx.arc(x1 + R * 0.20, 0, R * 0.26, 0, 7); bufx.fill();
+      bufx.fillStyle = 'rgba(30,26,20,0.75)';
+      bufx.beginPath(); bufx.arc(x1 + R * 0.26, -R * 0.05, Math.max(0.5, R * 0.08), 0, 7); bufx.fill();
+      bufx.globalAlpha = 1;
+    }
+    bufx.restore();
+  }
+
+  function drawGhosts() {
+    if (!ghosts.length) return;
+    const now = performance.now();
+    for (let i = ghosts.length - 1; i >= 0; i--) {
+      const gh = ghosts[i];
+      const k = (now - gh.t0) / GHOST_MS;
+      if (k >= 1) { ghosts.splice(i, 1); continue; }
+      const [sx, sy] = iso(gh.x, gh.y, levelAt(gh.x, gh.y));
+      if (!visRect(sx, sy, 80)) continue;
+      const r = Math.max(2.2, gh.r * cam.z * 0.85) * (1 + k * 0.45);
+      const y = sy - (10 + 52 * k) * Math.max(0.35, cam.z);
+      const wob = Math.sin(k * 8.5 + gh.x * 0.01) * r * 0.3;
+      const a = (1 - k) * (k < 0.12 ? k / 0.12 : 1) * 0.6;
+      const x = sx + wob;
+      bufx.globalAlpha = a;
+      bufx.fillStyle = '#dff0ec';
+      bufx.beginPath();
+      bufx.arc(x, y, r, Math.PI, 0);
+      bufx.quadraticCurveTo(x + r, y + r * 1.35, x, y + r * 1.55);
+      bufx.quadraticCurveTo(x - r, y + r * 1.35, x - r, y);
+      bufx.closePath(); bufx.fill();
+      bufx.fillStyle = 'rgba(22,44,42,0.85)';
+      const er = Math.max(0.6, r * 0.17);
+      bufx.beginPath(); bufx.arc(x - r * 0.34, y - r * 0.10, er, 0, 7); bufx.fill();
+      bufx.beginPath(); bufx.arc(x + r * 0.34, y - r * 0.10, er, 0, 7); bufx.fill();
+      bufx.globalAlpha = 1;
+    }
+  }
+
   function selRing(c) {
     if (c !== selected) return;
     const [sx, sy] = iso(c.x, c.y, levelAt(c.x, c.y));
@@ -3642,7 +3860,7 @@
     if (cam.z > 0.14) {   // below this a plant is well under one screen pixel
       for (const p of world.plants) { const [sx, sy] = iso(p.x, p.y, levelAt(p.x, p.y)); if (!vis(sx, sy, 8)) continue; bufx.fillStyle = p.deep ? '#1f8f7d' : p.water ? '#3fb98a' : '#76d96a'; bufx.fillRect(sx - 1, sy - 2, 2, 3); }
     }
-    for (const cz of world.carrion) { const [sx, sy] = iso(cz.x, cz.y, levelAt(cz.x, cz.y)); if (!vis(sx, sy, 8)) continue; bufx.fillStyle = 'rgba(122,92,67,' + Math.min(1, cz.decay / 10) + ')'; bufx.beginPath(); bufx.arc(sx, sy, 2.5, 0, 7); bufx.fill(); }
+    for (const cz of world.carrion) drawCarrion(cz);
     // Vegetation is baked into the terrain raster, so the only depth-sorted
     // per-frame geometry is the creatures themselves.
     // v9.2: cap how many never-before-seen body plans may be baked this frame.
@@ -3664,6 +3882,7 @@
         bufx.beginPath(); bufx.ellipse(cr._sx, cr._sy, R * 1.1, R * 0.55, 0, 0, 7); bufx.stroke();
       }
     }
+    drawGhosts();
     // night overlay
     if (world.flags.dayNight) { bufx.setTransform(1, 0, 0, 1, 0, 0); bufx.fillStyle = `rgba(8,14,38,${(1 - lt) * 0.5})`; bufx.fillRect(0, 0, bw, bh); }
     if (world.extinct) { bufx.setTransform(1, 0, 0, 1, 0, 0); bufx.fillStyle = 'rgba(0,0,0,0.5)'; bufx.fillRect(0, 0, bw, bh); bufx.fillStyle = '#ff6b5e'; bufx.font = '700 18px monospace'; bufx.textAlign = 'center'; bufx.fillText('EXTINCTION', bw / 2, bh / 2); bufx.textAlign = 'left'; }
@@ -3764,6 +3983,7 @@
         // keep up, run fewer steps this frame rather than dropping the frame.
         if ((i & 3) === 3 && performance.now() - t0 > STEP_BUDGET_MS) break;
       }
+      trackDeaths();
     }
     // v8.5: pick up any biome shift climate drift made in the core this frame
     // (cheap to check every frame -- an integer compare -- and the actual
@@ -3797,7 +4017,7 @@
   }
 
   // ---------------------------------------------------- controls
-  function flags() { return { brains: $('f_brains').checked, dayNight: $('f_day').checked, seasons: $('f_season').checked, toxins: $('f_tox').checked, climate: $('f_climate').checked }; }
+  function flags() { return { brains: $('f_brains').checked, sexual: $('f_sex').checked, dayNight: $('f_day').checked, seasons: $('f_season').checked, toxins: $('f_tox').checked, climate: $('f_climate').checked }; }
   // Crypto-strength fresh seed. The core stays fully deterministic per seed —
   // determinism is a debugging feature, not a default, so every load/reset is a
   // brand new universe unless the seed is explicitly locked.
@@ -3822,6 +4042,10 @@
       startPlants: clamp(parseInt($('startPlants').value, 10) || 0, 0, 40000),
       mutationRate: parseFloat($('mut').value), plantRate: parseFloat($('plant').value),
       timeScale: parseFloat($('tscale').value), flags: flags(),
+      // v9.3 tunables
+      plantEnergy: parseFloat($('pe').value), dayLen: parseFloat($('dayl').value),
+      yearLen: parseFloat($('yearl').value), carrionLife: parseFloat($('clife').value),
+      carrionYield: parseFloat($('cy').value), founderDiversity: parseFloat($('fd').value),
     });
     selected = null; treeSel = null; treeLayout = null; showTreeNode(null);
     buildTerrain(); fitCamera();
@@ -3835,6 +4059,23 @@
   $('spd').addEventListener('input', e => { speed = +e.target.value; $('spdv').textContent = speed + '×'; });
   $('mut').addEventListener('input', e => { $('mutv').textContent = (+e.target.value).toFixed(2); if (world) world.params.mutationRate = +e.target.value; });
   $('plant').addEventListener('input', e => { $('plantv').textContent = e.target.value; if (world) world.params.plantRate = +e.target.value; });
+  // v9.3 tunables. Each writes straight into world.params, which the core reads
+  // every tick, so these are live. founderDiversity is the one exception: it is
+  // only consumed while a world is being built, so it is labelled reset-only.
+  const liveParam = (id, out, key, fmt) => {
+    const el = $(id); if (!el) return;
+    el.addEventListener('input', e => {
+      const v = +e.target.value;
+      $(out).textContent = fmt ? fmt(v) : v;
+      if (world && key) world.params[key] = v;
+    });
+  };
+  liveParam('pe', 'pev', 'plantEnergy');
+  liveParam('dayl', 'daylv', 'dayLen');
+  liveParam('yearl', 'yearlv', 'yearLen');
+  liveParam('clife', 'clifev', 'carrionLife');
+  liveParam('cy', 'cyv', 'carrionYield', v => v.toFixed(1));
+  liveParam('fd', 'fdv', null, v => v.toFixed(2));
   $('cmode').addEventListener('change', e => colorMode = e.target.value);
   // v9.2: organic-body toggle. Disabled outright (and forced off) if the
   // organic module failed to load, so the checkbox can never promise something
@@ -3847,8 +4088,20 @@
     }
   }
   $('tscale').addEventListener('input', e => { $('tscalev').textContent = (+e.target.value).toFixed(3); if (world) world.params.timeScale = +e.target.value; });
-  for (const id of ['f_brains', 'f_day', 'f_season', 'f_tox', 'f_climate']) $(id).addEventListener('change', () => { if (world) world.flags = flags(); });
+  for (const id of ['f_brains', 'f_sex', 'f_day', 'f_season', 'f_tox', 'f_climate']) $(id).addEventListener('change', () => { if (world) world.flags = flags(); });
   window.addEventListener('resize', () => { resizeBuffers(); });
+
+  // Test hook. The headless suite drives and inspects the exact world the page
+  // is rendering, rather than a re-created copy of it, so what the tests assert
+  // is what a player sees. Read-only in normal use; nothing depends on it.
+  window.__GEN = {
+    get world() { return world; },
+    get ghosts() { return ghosts; },
+    get carrion() { return world ? world.carrion : []; },
+    get cam() { return cam; },
+    focus(wx, wy, z) { const t = iso(wx, wy, levelAt(wx, wy)); cam.z = z; cam.x = bw / 2 - t[0] * z; cam.y = bh / 2 - t[1] * z; },
+    rebuild: build,
+  };
 
   // ---------------------------------------------------- phylogeny overlay
   // A live genealogy: every individual is a node, time runs downward, and a
