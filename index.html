@@ -109,6 +109,22 @@
   aside h2{font-size:12px!important;letter-spacing:.16em!important;color:#35e0d8!important;margin-bottom:12px!important}
   aside .card.brief p{font-size:13.5px;line-height:1.6}
   @media (prefers-reduced-motion:reduce){aside .toggles label{transition:none}}
+
+
+  /* top-left toolbar: larger base size (also zoomed by --ui) */
+  .topbar{gap:10px;padding:9px 14px;border-radius:12px}
+  .topbar h1{font-size:24px;margin:0 8px 0 2px}
+  .topbar button{font-size:17px;min-width:42px;height:40px;padding:0 12px;border-radius:8px}
+  .topbar .ctl{font-size:12px;gap:4px;min-width:150px}
+  .topbar .ctl b{font-size:14px}
+  .topbar input[type=range]{width:150px;height:22px;accent-color:#35e0d8}
+  /* ---------- interface scale: every menu is zoomed by --ui (set by script) ---------- */
+  aside,.topbar,.treebar,.treenode{zoom:var(--ui,1)}
+  aside .uisz{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:13px;color:var(--dim)}
+  aside .uisz span{flex:1}
+  aside .uisz button{width:auto!important;margin:0!important;padding:5px 11px!important;font-size:15px;line-height:1}
+  aside .uisz #uiAuto{font-size:12px}
+  aside .uisz b{min-width:54px;text-align:center;color:var(--ink);font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -131,6 +147,8 @@
     </div>
     <div class="card">
       <h2>control panel</h2>
+      <div class="uisz" title="scales every menu and overlay. Auto fits your screen resolution."><span>interface size</span>
+        <button type="button" id="uiDown" aria-label="smaller interface">&minus;</button><b id="uiVal">auto</b><button type="button" id="uiUp" aria-label="larger interface">+</button><button type="button" id="uiAuto">auto</button></div>
       <div class="popbox" title="number of founder animals placed on the island. Takes effect on reset.">
         <div class="pop-h"><span>start population</span><em>applies on reset</em></div>
         <div class="pop-row"><input id="startPopR" type="range" min="2" max="500" step="1" value="50" aria-label="start population slider"><input id="startPop" type="number" min="2" max="2000" value="50" aria-label="start population"></div>
@@ -154,7 +172,7 @@
         <div class="ctl"><div class="ctl-h"><span class="ctl-n">season length</span><b id="yearlv">70</b></div><input id="yearl" type="range" min="10" max="300" step="10" value="70"><div class="ctl-d">length of one year, which drives the seasons. Live.</div></div>
         <div class="ctl"><div class="ctl-h"><span class="ctl-n">corpse lifespan</span><b id="clifev">12</b></div><input id="clife" type="range" min="2" max="60" step="1" value="12"><div class="ctl-d">how long a corpse lies there before it is gone. Live: applies to corpses made from now on.</div></div>
         <div class="ctl"><div class="ctl-h"><span class="ctl-n">corpse yield</span><b id="cyv">1.0</b></div><input id="cy" type="range" min="0.2" max="4" step="0.1" value="1"><div class="ctl-d">multiplier on how much energy a corpse is worth to a scavenger. Live: applies to corpses made from now on.</div></div>
-        <div class="ctl"><div class="ctl-h"><span class="ctl-n">founder diversity</span><b id="fdv">0.00</b></div><input id="fd" type="range" min="0" max="1" step="0.05" value="0"><div class="ctl-d">how far founders are pre-mutated apart from each other. 0 = identical copies of one animal. Takes effect on reset.</div></div>
+        <div class="ctl"><div class="ctl-h"><span class="ctl-n">founder diversity</span><b id="fdv">0.40</b></div><input id="fd" type="range" min="0" max="1" step="0.05" value="0.4"><div class="ctl-d">how far founders are pre-mutated apart from each other. 0 = identical copies of one animal. Takes effect on reset.</div></div>
       </div>
       <div class="field">color by
         <select id="cmode"><option value="diet">diet</option><option value="species">species</option><option value="hue">display hue</option></select>
@@ -4097,7 +4115,7 @@
       // v9.3 tunables
       plantEnergy: parseFloat($('pe').value), dayLen: parseFloat($('dayl').value),
       yearLen: parseFloat($('yearl').value), carrionLife: parseFloat($('clife').value),
-      carrionYield: parseFloat($('cy').value), founderDiversity: parseFloat($('fd').value),
+      carrionYield: parseFloat($('cy').value), founderDiversity: (v => isFinite(v) ? v : 0.4)(parseFloat($('fd').value)),
     });
     selected = null; treeSel = null; treeLayout = null; showTreeNode(null);
     buildTerrain(); fitCamera();
@@ -4465,6 +4483,53 @@
   }
   all();
   window.addEventListener('load', function () { if (box && sl) { var v = parseInt(box.value, 10); if (isFinite(v)) sl.value = String(Math.min(500, Math.max(2, v))); } all(); });
+})();
+</script>
+
+<script>
+/* Interface scale. On high-resolution screens at 100% OS scaling every menu was
+   tiny, so all overlays are CSS-zoomed by a factor that follows the viewport size
+   (1.0 at ~1600x900, 2.0 at ~3200x1800), times an optional user multiplier that
+   is remembered per browser. UI only; no simulation state is touched. */
+(function () {
+  'use strict';
+  var KEY = 'genesis2d.uiScale', PANEL_W = 460, STEP = 0.1, MIN_M = 0.6, MAX_M = 2.0;
+  var mult = 1, manual = false;
+  try { var sv = parseFloat(localStorage.getItem(KEY)); if (isFinite(sv) && sv >= MIN_M && sv <= MAX_M) { mult = sv; manual = true; } } catch (_) {}
+  function autoScale() {
+    var w = window.innerWidth || 1600, h = window.innerHeight || 900;
+    var z = Math.min(w / 1600, h / 900);
+    return Math.max(1, Math.min(3, z));
+  }
+  var last = 0;
+  function apply(fire) {
+    var w = window.innerWidth || 1600;
+    var z = autoScale() * mult;
+    z = Math.min(z, (w * 0.5) / PANEL_W);       // side panel never takes more than half the screen
+    z = Math.max(0.75, Math.min(3.5, z));
+    z = Math.round(z * 100) / 100;
+    var lbl = document.getElementById('uiVal');
+    if (lbl) lbl.textContent = manual ? Math.round(mult * 100) + '%' : 'auto';
+    if (z === last) return;
+    last = z;
+    document.documentElement.style.setProperty('--ui', String(z));
+    // the canvas area changed size without a window resize; let the app re-fit its buffers
+    if (fire) { try { window.dispatchEvent(new Event('resize')); } catch (_) {} }
+  }
+  function save() { try { if (manual) localStorage.setItem(KEY, String(mult)); else localStorage.removeItem(KEY); } catch (_) {} }
+  function bump(d) { mult = Math.max(MIN_M, Math.min(MAX_M, Math.round((mult + d) * 10) / 10)); manual = true; save(); apply(true); }
+  var up = document.getElementById('uiUp'), dn = document.getElementById('uiDown'), au = document.getElementById('uiAuto');
+  if (up) up.addEventListener('click', function () { bump(STEP); });
+  if (dn) dn.addEventListener('click', function () { bump(-STEP); });
+  if (au) au.addEventListener('click', function () { mult = 1; manual = false; save(); apply(true); });
+  var pending = false;
+  window.addEventListener('resize', function () {   // our own dispatched resize is a no-op here (z unchanged)
+    if (pending) return; pending = true;
+    requestAnimationFrame(function () { pending = false; apply(true); });
+  });
+  apply(false);
+  // first layout used the zoomed panel width: make the app re-measure its canvas once loaded
+  window.addEventListener('load', function () { apply(false); try { window.dispatchEvent(new Event('resize')); } catch (_) {} });
 })();
 </script>
 </body>
