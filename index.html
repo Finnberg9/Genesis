@@ -21,7 +21,7 @@
   .ctl{display:flex;flex-direction:column;gap:2px;font-size:10px;color:var(--dim);}
   .ctl b{color:var(--cyan);font-weight:600}
   input[type=range]{width:96px;accent-color:var(--cyan);vertical-align:middle;}
-  aside{width:362px;flex:0 0 362px;height:100vh;overflow-y:auto;background:var(--bg);border-left:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:12px;}
+  aside{width:460px;flex:0 0 460px;height:100vh;overflow-y:auto;background:var(--bg);border-left:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:12px;}
   aside::-webkit-scrollbar{width:8px}aside::-webkit-scrollbar-thumb{background:#143430;border-radius:4px}
   .card{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:12px;}
   .card.brief{border-color:#2f7d74;background:linear-gradient(180deg,rgba(53,224,216,.09),rgba(6,18,17,.5));}
@@ -61,6 +61,54 @@
   .treenode.on{display:block}
   .treekey{display:flex;gap:14px;font-size:10px;color:var(--dim);letter-spacing:1px;align-items:center}
   .treekey i{display:inline-block;width:14px;height:2px;margin-right:5px;vertical-align:middle}
+
+  /* ---------- control panel restyle (larger, readable sliders) ---------- */
+  aside{--trk:#0b2522;--fill:#35e0d8;}
+  aside .popbox{border:1px solid #2f7d74;border-radius:10px;padding:12px 12px 10px;margin:0 0 14px;
+    background:linear-gradient(180deg,rgba(53,224,216,.12),rgba(53,224,216,.03));}
+  aside .pop-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  aside .pop-h span{font-size:15px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#35e0d8}
+  aside .pop-h em{font-style:normal;font-size:11px;color:var(--dim)}
+  aside .pop-row{display:flex;align-items:center;gap:14px}
+  aside .pop-row input[type=range]{flex:1;min-width:0;margin:0}
+  aside .pop-row input[type=number]{width:112px;flex:0 0 112px;font:700 28px/1 'IBM Plex Mono',monospace;text-align:center;
+    color:#e8fbf8;background:#04100e;border:1px solid #2f7d74;border-radius:8px;padding:8px 4px;}
+  aside .pop-row input[type=number]:focus{outline:none;border-color:#35e0d8;box-shadow:0 0 0 3px rgba(53,224,216,.2)}
+  aside .toggles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}
+  aside .toggles label{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+    background:rgba(4,16,14,.6);font-size:13px;line-height:1.25;color:var(--ink);cursor:pointer;transition:border-color .12s,background .12s}
+  aside .toggles label:hover{border-color:#2f7d74;background:rgba(53,224,216,.06)}
+  aside .toggles input[type=checkbox]{width:18px;height:18px;flex:0 0 18px;margin:0;accent-color:#35e0d8;cursor:pointer}
+  aside .ctl{display:block;margin:0 0 10px;padding:11px 12px 10px;border:1px solid var(--line);border-radius:10px;
+    background:rgba(4,16,14,.55);color:var(--ink);font-size:13px}
+  aside .ctl:hover{border-color:#2f7d74}
+  aside .ctl-h{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
+  aside .ctl-n{font-size:14px;font-weight:600;color:var(--ink);letter-spacing:.02em}
+  aside .ctl-h b{display:inline-block;min-width:64px;text-align:center;font-size:14px;font-weight:700;color:#04100e;
+    background:#35e0d8;border-radius:6px;padding:3px 8px;font-variant-numeric:tabular-nums}
+  aside .ctl-d{margin-top:8px;font-size:11.5px;line-height:1.45;color:var(--dim)}
+  aside input[type=range]{-webkit-appearance:none;appearance:none;display:block;width:100%;height:28px;margin:0;
+    background:transparent;cursor:pointer;accent-color:#35e0d8;--p:50%}
+  aside input[type=range]:focus{outline:none}
+  aside input[type=range]::-webkit-slider-runnable-track{height:12px;border-radius:6px;border:1px solid #1d4a44;
+    background:linear-gradient(90deg,var(--fill) 0,var(--fill) var(--p),var(--trk) var(--p),var(--trk) 100%)}
+  aside input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:26px;height:26px;margin-top:-8px;
+    border-radius:50%;background:#e8fbf8;border:3px solid #35e0d8;box-shadow:0 0 0 4px rgba(53,224,216,.15),0 2px 6px rgba(0,0,0,.5)}
+  aside input[type=range]:hover::-webkit-slider-thumb,aside input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 7px rgba(53,224,216,.25),0 2px 6px rgba(0,0,0,.5)}
+  aside input[type=range]::-moz-range-track{height:12px;border-radius:6px;border:1px solid #1d4a44;background:var(--trk)}
+  aside input[type=range]::-moz-range-progress{height:12px;border-radius:6px;background:var(--fill)}
+  aside input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#e8fbf8;border:3px solid #35e0d8;
+    box-shadow:0 0 0 4px rgba(53,224,216,.15)}
+  aside .sliders{gap:10px;margin-top:0}
+  aside .sliders .ctl{margin:0}
+  aside .field{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:10px;font-size:13px;color:var(--dim)}
+  aside .field input[type=number],aside .field select{font-size:13px;padding:6px 8px;border-radius:6px}
+  aside .field input[type=number]{width:100px}
+  aside .field label{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px}
+  aside .field input[type=checkbox]{width:16px;height:16px;accent-color:#35e0d8}
+  aside h2{font-size:12px!important;letter-spacing:.16em!important;color:#35e0d8!important;margin-bottom:12px!important}
+  aside .card.brief p{font-size:13.5px;line-height:1.6}
+  @media (prefers-reduced-motion:reduce){aside .toggles label{transition:none}}
 </style>
 </head>
 <body>
@@ -83,6 +131,11 @@
     </div>
     <div class="card">
       <h2>control panel</h2>
+      <div class="popbox" title="number of founder animals placed on the island. Takes effect on reset.">
+        <div class="pop-h"><span>start population</span><em>applies on reset</em></div>
+        <div class="pop-row"><input id="startPopR" type="range" min="2" max="500" step="1" value="50" aria-label="start population slider"><input id="startPop" type="number" min="2" max="2000" value="50" aria-label="start population"></div>
+        <div class="ctl-d">founders placed on the island. Slider covers 2 to 500; type up to 2000.</div>
+      </div>
       <div class="toggles">
         <label><input type="checkbox" id="f_brains" checked> neural brains</label>
         <label><input type="checkbox" id="f_day"> day / night</label>
@@ -93,21 +146,20 @@
         <label title="v9: bodies are drawn as fused cell clusters with jointed limbs. Off = the older ellipse-and-appendages renderer."><input type="checkbox" id="f_organic" checked> organic bodies</label>
       </div>
       <div class="sliders">
-        <div class="ctl" title="chance each gene mutates per birth. Live.">mutation rate <b id="mutv">0.60</b><input id="mut" type="range" min="0.1" max="1" step="0.01" value="0.6"></div>
-        <div class="ctl" title="how fast biological time runs against wall time. Live.">time scale (yr speed) <b id="tscalev">0.100</b><input id="tscale" type="range" min="0.01" max="1" step="0.01" value="0.1"></div>
-        <div class="ctl" title="plant spawn attempts per biological second. Live.">plant regrowth <b id="plantv">200</b><input id="plant" type="range" min="10" max="900" step="10" value="200"></div>
-        <div class="ctl" title="energy in one plant before biome multipliers. Live: affects newly grown plants.">plant energy <b id="pev">30</b><input id="pe" type="range" min="5" max="120" step="5" value="30"></div>
-        <div class="ctl" title="length of one day/night cycle in biological units. Live.">day length <b id="daylv">6</b><input id="dayl" type="range" min="1" max="40" step="1" value="6"></div>
-        <div class="ctl" title="length of one year, which drives the seasons. Live.">season length <b id="yearlv">70</b><input id="yearl" type="range" min="10" max="300" step="10" value="70"></div>
-        <div class="ctl" title="how long a corpse lies there before it is gone. Live: applies to corpses made from now on.">corpse lifespan <b id="clifev">12</b><input id="clife" type="range" min="2" max="60" step="1" value="12"></div>
-        <div class="ctl" title="multiplier on how much energy a corpse is worth to a scavenger. Live: applies to corpses made from now on.">corpse yield <b id="cyv">1.0</b><input id="cy" type="range" min="0.2" max="4" step="0.1" value="1"></div>
-        <div class="ctl" title="how far founders are pre-mutated apart from each other. 0 = ten copies of one animal. Takes effect on reset.">founder diversity <b id="fdv">0.00</b><input id="fd" type="range" min="0" max="1" step="0.05" value="0"></div>
+        <div class="ctl"><div class="ctl-h"><span class="ctl-n">mutation rate</span><b id="mutv">0.60</b></div><input id="mut" type="range" min="0.1" max="1" step="0.01" value="0.6"><div class="ctl-d">chance each gene mutates per birth. Live.</div></div>
+        <div class="ctl"><div class="ctl-h"><span class="ctl-n">time scale (yr speed)</span><b id="tscalev">0.100</b></div><input id="tscale" type="range" min="0.01" max="1" step="0.01" value="0.1"><div class="ctl-d">how fast biological time runs against wall time. Live.</div></div>
+        <div class="ctl"><div class="ctl-h"><span class="ctl-n">plant regrowth</span><b id="plantv">200</b></div><input id="plant" type="range" min="10" max="900" step="10" value="200"><div class="ctl-d">plant spawn attempts per biological second. Live.</div></div>
+        <div class="ctl"><div class="ctl-h"><span class="ctl-n">plant energy</span><b id="pev">30</b></div><input id="pe" type="range" min="5" max="120" step="5" value="30"><div class="ctl-d">energy in one plant before biome multipliers. Live: affects newly grown plants.</div></div>
+        <div class="ctl"><div class="ctl-h"><span class="ctl-n">day length</span><b id="daylv">6</b></div><input id="dayl" type="range" min="1" max="40" step="1" value="6"><div class="ctl-d">length of one day/night cycle in biological units. Live.</div></div>
+        <div class="ctl"><div class="ctl-h"><span class="ctl-n">season length</span><b id="yearlv">70</b></div><input id="yearl" type="range" min="10" max="300" step="10" value="70"><div class="ctl-d">length of one year, which drives the seasons. Live.</div></div>
+        <div class="ctl"><div class="ctl-h"><span class="ctl-n">corpse lifespan</span><b id="clifev">12</b></div><input id="clife" type="range" min="2" max="60" step="1" value="12"><div class="ctl-d">how long a corpse lies there before it is gone. Live: applies to corpses made from now on.</div></div>
+        <div class="ctl"><div class="ctl-h"><span class="ctl-n">corpse yield</span><b id="cyv">1.0</b></div><input id="cy" type="range" min="0.2" max="4" step="0.1" value="1"><div class="ctl-d">multiplier on how much energy a corpse is worth to a scavenger. Live: applies to corpses made from now on.</div></div>
+        <div class="ctl"><div class="ctl-h"><span class="ctl-n">founder diversity</span><b id="fdv">0.00</b></div><input id="fd" type="range" min="0" max="1" step="0.05" value="0"><div class="ctl-d">how far founders are pre-mutated apart from each other. 0 = identical copies of one animal. Takes effect on reset.</div></div>
       </div>
       <div class="field">color by
         <select id="cmode"><option value="diet">diet</option><option value="species">species</option><option value="hue">display hue</option></select>
       </div>
-      <div class="field">start pop <input id="startPop" type="number" min="2" max="2000" value="10">
-        start plants <input id="startPlants" type="number" min="0" max="40000" value="500">
+      <div class="field">start plants <input id="startPlants" type="number" min="0" max="40000" value="500">
         seed <input id="seed" type="number" min="1" max="4294967295" value="2024">
         <label style="display:flex;align-items:center;gap:4px;cursor:pointer" title="off = new random universe every load/reset"><input type="checkbox" id="seedLock"> lock</label></div>
       <div class="legend">
@@ -4038,7 +4090,7 @@
     const sp = parseInt($('startPop').value, 10);
     world = C.makeWorld({
       w: WORLD_W, h: WORLD_H, seed, tileSize: TILE,
-      startPop: clamp(isFinite(sp) ? sp : 10, 2, 2000),
+      startPop: clamp(isFinite(sp) ? sp : 50, 2, 2000),
       startPlants: clamp(parseInt($('startPlants').value, 10) || 0, 0, 40000),
       mutationRate: parseFloat($('mut').value), plantRate: parseFloat($('plant').value),
       timeScale: parseFloat($('tscale').value), flags: flags(),
@@ -4380,6 +4432,40 @@
   requestAnimationFrame(frame);
 })();
 
+</script>
+
+<script>
+/* control panel UI: track fill + start-population slider/box sync. UI only, no sim logic. */
+(function () {
+  'use strict';
+  function fill(el) {
+    var lo = parseFloat(el.min), hi = parseFloat(el.max), v = parseFloat(el.value);
+    if (!isFinite(lo)) lo = 0; if (!isFinite(hi)) hi = 100; if (!isFinite(v)) v = lo;
+    var p = hi > lo ? (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo) * 100 : 0;
+    el.style.setProperty('--p', p.toFixed(2) + '%');
+  }
+  function all() { var r = document.querySelectorAll('input[type=range]'); for (var i = 0; i < r.length; i++) fill(r[i]); }
+  document.addEventListener('input', function (e) { if (e.target && e.target.type === 'range') fill(e.target); }, true);
+  var box = document.getElementById('startPop'), sl = document.getElementById('startPopR');
+  if (box && sl) {
+    sl.addEventListener('input', function () { box.value = sl.value; });
+    var fromBox = function () {
+      var v = parseInt(box.value, 10);
+      if (!isFinite(v)) return;                       // leave slider alone while the box is empty mid-edit
+      sl.value = String(Math.min(500, Math.max(2, v)));
+      fill(sl);
+    };
+    box.addEventListener('input', fromBox);
+    box.addEventListener('change', function () {    // clamp the typed value on commit
+      var v = parseInt(box.value, 10);
+      box.value = String(isFinite(v) ? Math.min(2000, Math.max(2, v)) : 50);
+      fromBox();
+    });
+    fromBox();
+  }
+  all();
+  window.addEventListener('load', function () { if (box && sl) { var v = parseInt(box.value, 10); if (isFinite(v)) sl.value = String(Math.min(500, Math.max(2, v))); } all(); });
+})();
 </script>
 </body>
 </html>
